@@ -1,0 +1,883 @@
+#include "GTLibc.h"
+
+GTLibc::GTLibc()
+{
+    logFile = "GTLibc.log";
+    enableLogs = false;
+}
+
+GTLibc::GTLibc(bool enableLogs)
+{
+    logFile = "GTLibc.log";
+    this->enableLogs = enableLogs;
+}
+
+GTLibc::GTLibc(const std::string &gameName)
+{
+    logFile = "GTLibc.log";
+    enableLogs = false;
+    FindGameProcess(gameName);
+}
+
+GTLibc::~GTLibc()
+{
+    if (gameHandle)
+    {
+        CloseHandle(gameHandle);
+    }
+}
+
+// Add proper summary for this method including the parameters and return value
+/*
+ * @brief Find game process by name
+ * @param gameName
+ * @return bool
+ *
+ */
+
+bool GTLibc::FindGameProcess(const std::string &gameName)
+{
+    AddLog("FindGameProcess", "Trying to find game process: " + gameName);
+
+    auto EndsWith = [](const std::string &str, const std::string &suffix)
+    {
+        if (suffix.size() > str.size())
+        {
+            return false;
+        }
+        return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+    };
+
+    // Check if game name ends with .exe
+    std::string gameNameExe = gameName;
+    if (!EndsWith(gameNameExe, ".exe"))
+    {
+        gameNameExe += ".exe";
+        AddLog("FindGameProcess", "Game name appended with .exe: " + gameNameExe);
+    }
+
+    PROCESSENTRY32 pe;
+    HANDLE hSnapshot;
+
+    try
+    {
+        hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        AddLog("FindGameProcess", "Snapshot handle: " + to_hex_str(hSnapshot));
+
+        if (hSnapshot == INVALID_HANDLE_VALUE)
+        {
+            std::string errMsg = "Failed to create process snapshot";
+            AddLog("FindGameProcess", "Error: " + errMsg);
+            ShowError(errMsg);
+            return false;
+        }
+
+        pe.dwSize = sizeof(PROCESSENTRY32);
+
+        if (!Process32First(hSnapshot, &pe))
+        {
+            std::string errMsg = "Failed to get first process entry";
+            AddLog("FindGameProcess", "Error: " + errMsg);
+            ShowError(errMsg.c_str());
+            CloseHandle(hSnapshot);
+            return false;
+        }
+
+        do
+        {
+            if (!lstrcmpi(pe.szExeFile, gameNameExe.c_str()))
+            {
+                CloseHandle(hSnapshot);
+                processId = pe.th32ProcessID;
+                gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+
+                /*set current process info.*/
+                this->gameName = gameName;
+                this->processId = pe.th32ProcessID;
+                this->gameWindow = FindGameWindow(gameName);
+                AddLog("FindGameProcess", "Game process found: " + gameName);
+                AddLog("FindGameProcess", "Game process id: " + std::to_string(processId));
+                AddLog("FindGameProcess", "Game process handle: " + to_hex_str(gameHandle));
+                AddLog("FindGameProcess", "Game window handle: " + to_hex_str(gameWindow));
+
+                return true;
+            }
+        } while (Process32Next(hSnapshot, &pe));
+
+        std::string errMsg = "Game process not found";
+        AddLog("FindGameProcess", "Error: " + errMsg);
+        ShowError(errMsg.c_str());
+    }
+    catch (const std::exception &e)
+    {
+        AddLog("FindGameProcess", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+    }
+
+    CloseHandle(hSnapshot);
+    return false;
+}
+
+// Add proper summary for this method including the parameters and return value
+/*
+ * @brief Find game window by name
+ * @param windowName
+ * @return HWND
+ *
+ */
+
+HWND GTLibc::FindGameWindow(const std::string &windowName)
+{
+    AddLog("FindGameWindow", "Trying to find game window: " + windowName);
+    return FindWindowA(NULL, windowName.c_str());
+}
+
+// Add proper summary for this method including the parameters and return value
+/*
+ * @brief Read address
+ * @param address
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadAddress(DWORD address)
+{
+    AddLog("ReadAddress", "Trying to read address: " + to_hex_str(address));
+    try
+    {
+        T value;
+        SIZE_T bytesRead;
+        if (ReadProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
+        {
+            AddLog("ReadAddress", "Read value: " + to_hex_str(value));
+            return value;
+        }
+        throw std::runtime_error("Failed to read address");
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Read address with offset
+ * @param address
+ * @param offset
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadAddressOffset(DWORD address, DWORD offset)
+{
+    AddLog("ReadAddressOffset", "Trying to read address with offset: " + to_hex_str(address) + " + " + to_hex_str(offset));
+    try
+    {
+        T value;
+        SIZE_T bytesRead;
+        DWORD newAddress = address + offset;
+        if (ReadProcessMemory(gameHandle, (LPVOID)newAddress, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
+        {
+            AddLog("ReadAddressOffset", "Read value: " + to_hex_str(value));
+            return value;
+        }
+        throw std::runtime_error("Failed to read address with offset");
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadAddressOffset", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Read address with offsets
+ * @param address
+ * @param offsets
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadAddressOffsets(DWORD address, const std::vector<DWORD> &offsets)
+{
+    AddLog("ReadAddressOffsets", "Trying to read address with offsets: " + to_hex_str(address));
+
+    // Add log all the values of the offsets
+    std::ostringstream oss;
+    for (auto d : offsets)
+        oss << to_hex_str(d) << ",";
+
+    std::string result = oss.str();
+    result.pop_back();
+    AddLog("ReadPointerOffsets", "Offsets: " + result);
+
+    try
+    {
+        DWORD currentAddress = address;
+        for (DWORD offset : offsets)
+        {
+            currentAddress = ReadAddress<DWORD>(currentAddress + offset);
+        }
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadAddressOffsets", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+
+    return T();
+}
+
+/*
+ * @brief Write address
+ * @param address
+ * @param value
+ * @return bool
+ *
+ */
+
+template <typename T>
+bool GTLibc::WriteAddress(DWORD address, const T &value)
+{
+    AddLog("WriteAddress", "Trying to write to address: " + to_hex_str(address) + " with value: " + std::to_string(value));
+    try
+    {
+        SIZE_T bytesWritten;
+        if (WriteProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesWritten) && bytesWritten == sizeof(T))
+        {
+            return true;
+        }
+        throw std::runtime_error("Failed to write to address");
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Write address with offset
+ * @param address
+ * @param offset
+ * @param value
+ * @return bool
+ *
+ */
+
+template <typename T>
+bool GTLibc::WriteAddressOffset(DWORD address, DWORD offset, const T &value)
+{
+    AddLog("WriteAddressOffset", "Trying to write to address: " + to_hex_str(address) + " with offset: " + to_hex_str(offset) + " with value: " + std::to_string(value));
+    try
+    {
+        DWORD newAddress = address + offset;
+        return WriteAddress(newAddress, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteAddressOffset", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Write address with offsets
+ * @param address
+ * @param offsets
+ * @param value
+ * @return bool
+ *
+ */
+
+template <typename T>
+bool GTLibc::WriteAddressOffsets(DWORD address, const std::vector<DWORD> &offsets, const T &value)
+{
+    AddLog("WriteAddressOffsets", "Trying to write to address: " + to_hex_str(address) + " with offsets: " + std::to_string(offsets.size()) + " with value: " + std::to_string(value));
+    try
+    {
+        for (const DWORD &offset : offsets)
+        {
+            WriteAddressOffset(address, offset, value);
+        }
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteAddressOffsets", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Read pointer
+ * @param address
+ * @return T
+ *
+ */
+template <typename T>
+bool GTLibc::WritePointer(DWORD address, DWORD offset, const T &value)
+{
+    AddLog("WritePointer", "Trying to write to pointer at base address: " + to_hex_str(address) + " with offset: " + to_hex_str(offset) + " with value: " + std::to_string(value));
+    try
+    {
+        DWORD pointerAddress = ReadAddress<DWORD>(address);
+        return WriteAddressOffset(pointerAddress, offset, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WritePointer", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Read pointer
+ * @param address
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadPointer(DWORD address, DWORD offset)
+{
+    AddLog("ReadPointer", "Trying to read pointer at base address: " + to_hex_str(address) + " with offset: " + std::to_string(offset));
+    try
+    {
+        DWORD pointerAddress = ReadAddress<DWORD>(address);
+        T returnValue = ReadAddressOffset<T>(pointerAddress, offset);
+        AddLog("ReadPointer", "Return value: " + to_hex_str(returnValue));
+        return returnValue;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadPointer", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Read pointer with offset
+ * @param address and offset
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadPointerOffset(DWORD address, const DWORD offset)
+{
+    AddLog("ReadPointerOffset", "Trying to read pointer at base address: " + to_hex_str(address) + " with offset: " + to_hex_str(offset));
+    try
+    {
+        DWORD pointerAddress = address;
+        pointerAddress = ReadAddress<DWORD>(pointerAddress + offset);
+        AddLog("ReadPointerOffset", "Return value: " + to_hex_str(pointerAddress));
+        return pointerAddress;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadPointerOffset", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Read pointer with offsets
+ * @param address and offsets
+ * @return T
+ *
+ */
+
+template <typename T>
+T GTLibc::ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsets)
+{
+    AddLog("ReadPointerOffsets", "Trying to read pointer at base address: " + to_hex_str(address) + " with offsets size: " + std::to_string(offsets.size()));
+    // Add log the values of offsets iterate all items in offsetsList
+    std::ostringstream oss;
+    for (auto d : offsets)
+        oss << std::hex << to_hex_str(d) << ",";
+
+    std::string result = oss.str();
+    result.pop_back();
+    AddLog("ReadPointerOffsets", "Offsets: " + result);
+
+    try
+    {
+        DWORD pointerAddress = address;
+        for (const DWORD offsets : offsets)
+        {
+            pointerAddress = ReadPointerOffset<DWORD>(pointerAddress, offsets);
+        }
+        AddLog("ReadPointerOffsets", "Return value: " + to_hex_str(pointerAddress));
+        return pointerAddress;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadPointerOffsets", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Write pointer with offset
+ * @param address and offset
+ * @return bool
+ *
+ */
+template <typename T>
+bool GTLibc::WritePointerOffset(DWORD address, const std::vector<DWORD> &offsets, const T &value)
+{
+    AddLog("WritePointerOffset", "Trying to write to pointer at base address: " + to_hex_str(address) + " with offsets: " + std::to_string(offsets.size()) + " with value: " + std::to_string(value));
+    try
+    {
+        DWORD pointerAddress = ReadPointerOffsets<DWORD>(address, {offsets});
+        return WriteAddress(pointerAddress, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WritePointerOffset", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Write pointer with offsets
+ * @param address and offsets
+ * @return bool
+ *
+ */
+template <typename T>
+bool GTLibc::WritePointerOffsets(DWORD address, const std::vector<DWORD> &offsetsList, const T &value)
+{
+    AddLog("WritePointerOffsets", "Trying to write to pointer at base address: " + to_hex_str(address) + " with offsets: " + std::to_string(offsetsList.size()) + " with value: " + std::to_string(value));
+    try
+    {
+        DWORD pointerAddress = ReadPointerOffsets<DWORD>(address, offsetsList);
+        return WriteAddress(pointerAddress, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WritePointerOffsets", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Read float
+ * @param address
+ * @return float
+ *
+ */
+float GTLibc::ReadFloat(DWORD address)
+{
+    AddLog("ReadFloat", "Trying to read float at address: " + std::to_string(address));
+    try
+    {
+        float returnValue = ReadAddress<float>(address);
+        AddLog("ReadFloat", "Return value: " + std::to_string(returnValue));
+        return returnValue;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadFloat", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return 0.0f;
+    }
+    // return default value for type float
+    return 0.0f;
+}
+
+/*
+ * @brief Write float
+ * @param address and value
+ * @return bool
+ *
+ */
+bool GTLibc::WriteFloat(DWORD address, float value)
+{
+    AddLog("WriteFloat", "Trying to write float to address: " + std::to_string(address));
+    try
+    {
+        return WriteAddress<float>(address, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteFloat", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Read double
+ * @param address
+ * @return double
+ *
+ */
+double GTLibc::ReadDouble(DWORD address)
+{
+    AddLog("ReadDouble", "Trying to read double at address: " + std::to_string(address));
+    try
+    {
+        double returnValue = ReadAddress<double>(address);
+        AddLog("ReadDouble", "Return value: " + std::to_string(returnValue));
+        return returnValue;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadDouble", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return 0.0;
+    }
+    // return default value for type double
+    return 0.0;
+}
+
+/*
+ * @brief Write double
+ * @param address and value
+ * @return bool
+ *
+ */
+bool GTLibc::WriteDouble(DWORD address, double value)
+{
+    AddLog("WriteDouble", "Trying to write double to address: " + std::to_string(address));
+    try
+    {
+        return WriteAddress<double>(address, value);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteDouble", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Read string
+ * @param address and length
+ * @return string
+ *
+ */
+std::string GTLibc::ReadString(DWORD address, size_t length)
+{
+    AddLog("ReadString", "Trying to read string at address: " + std::to_string(address) + " with length: " + std::to_string(length));
+    try
+    {
+        char *buffer = new char[length + 1];
+        ReadProcessMemory(gameHandle, (LPVOID)address, buffer, length, NULL);
+        buffer[length] = '\0';
+        std::string result(buffer);
+        delete[] buffer;
+        AddLog("ReadString", "Return value: " + result);
+        return result;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadString", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return "";
+    }
+    // return default value for type string
+    return "";
+}
+
+/*
+ * @brief Write string
+ * @param address and value
+ * @return bool
+ *
+ */
+bool GTLibc::WriteString(DWORD address, const std::string &value)
+{
+    AddLog("WriteString", "Trying to write string to address: " + std::to_string(address));
+    try
+    {
+        return WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteString", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Get the game name
+ * @param None
+ * @return string
+ *
+ */
+
+std::string GTLibc::GetGameName()
+{
+    AddLog("GetGameName", "Trying to get game name");
+    try
+    {
+        if (this->gameName.length > 0)
+        {
+            return this->gameName;
+        }
+        else
+        {
+            AddLog("GetGameName", "Error: game name is empty");
+        }
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("GetGameName", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Handle error and return default value as needed for string
+        return "";
+    }
+    return "";
+}
+
+/*
+ * @brief Get process ID of the game
+ * @param None
+ * @return Process ID in DWORD
+ *
+ */
+
+DWORD GTLibc::GetProcessID()
+{
+    AddLog("GetProcessID", "Trying to get process ID");
+    try
+    {
+        if (this->processId != 0)
+        {
+            return this->processId;
+        }
+        else
+        {
+            AddLog("GetProcessID", "Error: process ID is 0");
+        }
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("GetProcessID", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Handle error and return default value as needed
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * @brief Get the game handle
+ * @param None
+ * @return Game handle in HANDLE
+ *
+ */
+HANDLE GTLibc::GetGameHandle()
+{
+    AddLog("GetGameHandle", "Trying to get game handle");
+    try
+    {
+        if (this->gameHandle != nullptr)
+        {
+            return this->gameHandle;
+        }
+        else
+        {
+            AddLog("GetGameHandle", "Error: game handle is 0");
+        }
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("GetGameHandle", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Handle error and return default value as needed
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * @brief Get the game base address
+ * @param None
+ * @return Game base address in DWORD
+ *
+ */
+DWORD GTLibc::GetGameBaseAddress()
+{
+    AddLog("GetGameBaseAddress", "Trying to get game base address");
+    try
+    {
+        MODULEENTRY32 module;
+        HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->processId);
+        if (snapshot == INVALID_HANDLE_VALUE)
+        {
+            AddLog("GetGameBaseAddress", "Error: snapshot is invalid");
+            return 0;
+        }
+        module.dwSize = sizeof(MODULEENTRY32);
+        if (!Module32First(snapshot, &module))
+        {
+            AddLog("GetGameBaseAddress", "Error: module32first failed");
+            CloseHandle(snapshot);
+            return 0;
+        }
+
+        else
+        {
+            module.dwSize = sizeof(MODULEENTRY32);
+            Module32First(snapshot, &module);
+            CloseHandle(snapshot);
+            this->gameBaseAddress = (DWORD)module.modBaseAddr;
+            AddLog("GetGameBaseAddress", "Return value: " + std::to_string(this->gameBaseAddress));
+        }
+        return this->gameBaseAddress;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("GetGameBaseAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Handle error and return default value as needed
+        return 0;
+    }
+    return 0;
+}
+
+/*
+ * @brief Checks if Hotkey is down
+ * @param None
+ * @return bool
+ *
+ */
+
+bool GTLibc::HotKeysDown(int virtualKeyCode)
+{
+    AddLog("HotKeysDown", "Checking if hotkey with virtual key code: " + std::to_string(virtualKeyCode) + " is down");
+    try
+    {
+        return (GetAsyncKeyState(virtualKeyCode) & 0x8000) != 0;
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("HotKeysDown", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
+ * @brief Checks if Hotkey is pressed
+ * @param keycode
+ * @return bool
+ *
+ */
+bool GTLibc::IsKeyPressed(int keycode)
+{
+    try
+    {
+        return (GetAsyncKeyState(keycode) & 0x8000);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("IsKeyPressed", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+}
+/*
+ * @brief Checks if Hotkey is toggled
+ * @param keycode
+ * @return bool
+ *
+ */
+bool GTLibc::IsKeyToggled(int keycode)
+{
+    try
+    {
+        return (GetAsyncKeyState(keycode) & 0x1);
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("IsKeyToggled", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+void GTLibc::AddLog(const std::string &methodName, const std::string &message)
+{
+    if (!enableLogs)
+        return;
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%T") << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    ss << " [" << methodName << "] " << message;
+
+    std::ofstream ofs(logFile, std::ios_base::out | std::ios_base::app);
+    ofs << ss.str() << std::endl;
+    ofs.close();
+}
+
+void GTLibc::EnableLogs(bool status)
+{
+    AddLog("EnableLogs", "Trying to enable logs");
+    enableLogs = status;
+}
+
+void GTLibc::ShowError(const std::string &errorMessage)
+{
+    MessageBox(NULL, errorMessage.c_str(), "ERROR!", MB_ICONERROR);
+}
+
+void GTLibc::ShowWarning(const std::string &warningMessage)
+{
+    MessageBox(NULL, warningMessage.c_str(), "WARNING!", MB_ICONWARNING);
+}
+
+void GTLibc::ShowInfo(const std::string &infoMessage)
+{
+    MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
+}

@@ -1,0 +1,9 @@
+/.dist
+/.vscode
+/CodeRunner.bat
+/GTLibc.log
+/GTLibc.o
+/IGITrainer.exe
+/IGITrainer.o
+/build
+/igi_window.lnk
