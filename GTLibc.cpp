@@ -27,7 +27,6 @@ GTLibc::~GTLibc()
     }
 }
 
-// Add proper summary for this method including the parameters and return value
 /*
  * @brief Find game process by name
  * @param gameName
@@ -118,7 +117,6 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
     return false;
 }
 
-// Add proper summary for this method including the parameters and return value
 /*
  * @brief Find game window by name
  * @param windowName
@@ -130,39 +128,6 @@ HWND GTLibc::FindGameWindow(const std::string &windowName)
 {
     AddLog("FindGameWindow", "Trying to find game window: " + windowName);
     return FindWindowA(NULL, windowName.c_str());
-}
-
-// Add proper summary for this method including the parameters and return value
-/*
- * @brief Read address
- * @param address
- * @return T
- *
- */
-template <typename T>
-T GTLibc::ReadAddress(DWORD address)
-{
-    AddLog("ReadAddress", "Trying to read address: " + to_hex_str(address));
-    try
-    {
-        T value;
-        SIZE_T bytesRead;
-        if (ReadProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
-        {
-            AddLog("ReadAddress", "Read value: " + to_hex_str(value));
-            return value;
-        }
-        throw std::runtime_error("Failed to read address");
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("ReadAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        // Return a default value or handle the error as needed
-        return T();
-    }
-    // return default value for type T
-    return T();
 }
 
 /*
@@ -236,6 +201,38 @@ T GTLibc::ReadAddressOffsets(DWORD address, const std::vector<DWORD> &offsets)
         return T();
     }
 
+    return T();
+}
+
+/*
+ * @brief Read address
+ * @param address
+ * @return T
+ *
+ */
+template <typename T>
+T GTLibc::ReadAddress(DWORD address)
+{
+    AddLog("ReadAddress", "Trying to read address: " + to_hex_str(address));
+    try
+    {
+        T value;
+        SIZE_T bytesRead;
+        if (ReadProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
+        {
+            AddLog("ReadAddress", "Read value: " + to_hex_str(value));
+            return value;
+        }
+        throw std::runtime_error("Failed to read address");
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
     return T();
 }
 
@@ -495,102 +492,6 @@ bool GTLibc::WritePointerOffsets(DWORD address, const std::vector<DWORD> &offset
 }
 
 /*
- * @brief Read float
- * @param address
- * @return float
- *
- */
-float GTLibc::ReadFloat(DWORD address)
-{
-    AddLog("ReadFloat", "Trying to read float at address: " + std::to_string(address));
-    try
-    {
-        float returnValue = ReadAddress<float>(address);
-        AddLog("ReadFloat", "Return value: " + std::to_string(returnValue));
-        return returnValue;
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("ReadFloat", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        // Return a default value or handle the error as needed
-        return 0.0f;
-    }
-    // return default value for type float
-    return 0.0f;
-}
-
-/*
- * @brief Write float
- * @param address and value
- * @return bool
- *
- */
-bool GTLibc::WriteFloat(DWORD address, float value)
-{
-    AddLog("WriteFloat", "Trying to write float to address: " + std::to_string(address));
-    try
-    {
-        return WriteAddress<float>(address, value);
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("WriteFloat", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        return false;
-    }
-    return false;
-}
-
-/*
- * @brief Read double
- * @param address
- * @return double
- *
- */
-double GTLibc::ReadDouble(DWORD address)
-{
-    AddLog("ReadDouble", "Trying to read double at address: " + std::to_string(address));
-    try
-    {
-        double returnValue = ReadAddress<double>(address);
-        AddLog("ReadDouble", "Return value: " + std::to_string(returnValue));
-        return returnValue;
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("ReadDouble", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        // Return a default value or handle the error as needed
-        return 0.0;
-    }
-    // return default value for type double
-    return 0.0;
-}
-
-/*
- * @brief Write double
- * @param address and value
- * @return bool
- *
- */
-bool GTLibc::WriteDouble(DWORD address, double value)
-{
-    AddLog("WriteDouble", "Trying to write double to address: " + std::to_string(address));
-    try
-    {
-        return WriteAddress<double>(address, value);
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("WriteDouble", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        return false;
-    }
-    return false;
-}
-
-/*
  * @brief Read string
  * @param address and length
  * @return string
@@ -654,7 +555,8 @@ std::string GTLibc::GetGameName()
     AddLog("GetGameName", "Trying to get game name");
     try
     {
-        if (this->gameName.length > 0)
+        // check if gameName is not empty
+        if (!this->gameName.empty())
         {
             return this->gameName;
         }
@@ -765,7 +667,8 @@ DWORD GTLibc::GetGameBaseAddress()
             module.dwSize = sizeof(MODULEENTRY32);
             Module32First(snapshot, &module);
             CloseHandle(snapshot);
-            this->gameBaseAddress = (DWORD)module.modBaseAddr;
+            uintptr_t modBaseAddr = reinterpret_cast<uintptr_t>(module.modBaseAddr);
+            this->gameBaseAddress = static_cast<DWORD>(modBaseAddr);
             AddLog("GetGameBaseAddress", "Return value: " + std::to_string(this->gameBaseAddress));
         }
         return this->gameBaseAddress;
