@@ -7,7 +7,10 @@
 #include <memory>
 #include <cstdint>
 #include <variant>
+#include <stdexcept>
+#include <unordered_map>
 #include "GTLibc.cpp"
+
 
 GTLibc gtlibc(true);
 
@@ -190,47 +193,31 @@ CheatEntries parseCheatEntries(const string &xmlData)
 
 using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
 
-DataType ReadValueFromAddress(const std::string &dataType, DWORD address)
+template <typename T>
+T ReadMemoryAddress(DWORD address)
 {
-    if (dataType == "Byte")
+    return gtlibc.ReadAddress<T>(address);
+}
+
+DataType ReadMemoryAddress(const std::string& dataType, DWORD address)
+{
+    static const std::unordered_map<std::string, std::function<DataType(DWORD)>> typeMap =
     {
-        // std::cout << "Reading byte from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<BYTE>(address);
-    }
-    else if (dataType == "2 Bytes")
-    {
-        // std::cout << "Reading 2 byte from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<int16_t>(address);
-    }
-    else if (dataType == "4 Bytes")
-    {
-        // std::cout << "Reading 4 byte from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<int32_t>(address);
-    }
-    else if (dataType == "8 Bytes")
-    {
-        // std::cout << "Reading 8 byte from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<int64_t>(address);
-    }
-    else if (dataType == "Float")
-    {
-        // std::cout << "Reading float from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<float>(address);
-    }
-    else if (dataType == "Double")
-    {
-        // std::cout << "Reading double from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadAddress<double>(address);
-    }
-    else if (dataType == "String")
-    {
-        // std::cout << "Reading string from address " << to_hex_str(address) << std::endl;
-        return gtlibc.ReadString(address, 0xFF);
-    }
-    else
+        { "Byte",   &ReadMemoryAddress<BYTE> },
+        { "2 Bytes",&ReadMemoryAddress<int16_t> },
+        { "4 Bytes",&ReadMemoryAddress<int32_t> },
+        { "8 Bytes",&ReadMemoryAddress<int64_t> },
+        { "Float",  &ReadMemoryAddress<float> },
+        { "Double", &ReadMemoryAddress<double> },
+        { "String", [](DWORD addr) { return std::string(gtlibc.ReadString(addr, 0xFF)); } }
+    };
+
+    const auto it = typeMap.find(dataType);
+    if (it == typeMap.end())
     {
         throw std::runtime_error("Invalid data type specified");
     }
+    return it->second(address);
 }
 
 std::string readFile(const std::string &filename)
@@ -283,11 +270,8 @@ int main()
         if (offsets.size() == 0 && address != 0)
         {
             std::cout << "Description: " << entry->Description << std::endl;
-            // check datatype and read accordingly
-            DataType data = ReadValueFromAddress(entry->VariableType, address);
-            // How to print the data of variant type?
-            std::cout << "Data: ";
-            PrintValue(data);
+            DataType result = ReadMemoryAddress(entry->VariableType, address);
+            PrintValue(result);
         }
     }
 
