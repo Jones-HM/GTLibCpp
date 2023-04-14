@@ -71,7 +71,6 @@ public:
     HANDLE GetGameHandle();
     DWORD GetGameBaseAddress();
     DWORD GetProcessID4mHWND(HWND hwnd);
-    DWORD GetGameBaseAddress(DWORD processId);
     DWORD GetStaticAddress(DWORD processId, DWORD moduleName);
     HMODULE GetProcessModule(DWORD processId, const std::string &moduleName);
 

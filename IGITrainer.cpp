@@ -70,7 +70,7 @@ int main()
 
     std::string gameName = "igi";
     gtlibc.FindGameProcess(gameName);
-    
+
     while (true)
     {
         if (gtlibc.IsKeyToggled(VK_F1))
