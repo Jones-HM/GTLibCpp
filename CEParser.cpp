@@ -9,9 +9,11 @@
 #include <variant>
 #include <stdexcept>
 #include <unordered_map>
+#include <algorithm>
+#include <ranges>
 #include "GTLibc.cpp"
 
-
+const DWORD GAME_BASE_ADDRESS = 0x00400000;
 GTLibc gtlibc(true);
 
 using namespace std;
@@ -194,22 +196,58 @@ CheatEntries parseCheatEntries(const string &xmlData)
 using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
 
 template <typename T>
-T ReadMemoryAddress(DWORD address)
+T ReadPointerOffset(DWORD address, const DWORD offset)
 {
-    return gtlibc.ReadAddress<T>(address);
+    T result = gtlibc.ReadPointerOffset<T>(address, offset);
+    return result;
 }
 
-DataType ReadMemoryAddress(const std::string& dataType, DWORD address)
+template <typename T>
+T ReadPointerOffsets(DWORD address, const std::vector<DWORD>& offsetsList)
 {
-    static const std::unordered_map<std::string, std::function<DataType(DWORD)>> typeMap =
+    T result = gtlibc.ReadPointerOffsets<T>(address, offsetsList);
+    return result;
+}
+
+template <typename T>
+T ReadAddress(DWORD address)
+{
+    T result = gtlibc.ReadAddress<T>(address);
+    return result;
+}
+
+DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD>& offsetsList)
+{
+    if (offsetsList.size() < 2)
     {
-        { "Byte",   &ReadMemoryAddress<BYTE> },
-        { "2 Bytes",&ReadMemoryAddress<int16_t> },
-        { "4 Bytes",&ReadMemoryAddress<int32_t> },
-        { "8 Bytes",&ReadMemoryAddress<int64_t> },
-        { "Float",  &ReadMemoryAddress<float> },
-        { "Double", &ReadMemoryAddress<double> },
-        { "String", [](DWORD addr) { return std::string(gtlibc.ReadString(addr, 0xFF)); } }
+        throw std::runtime_error("Invalid offsets list: must have at least 2 elements");
+    }
+
+    DWORD staticAddress = address - GAME_BASE_ADDRESS;
+    DWORD result = gtlibc.ReadPointerOffset<DWORD>(GAME_BASE_ADDRESS,staticAddress);
+    for (size_t i = 0; i < offsetsList.size() - 1; ++i)
+    {
+        result = gtlibc.ReadPointerOffset<DWORD>(result, offsetsList[i]);
+    }
+
+    // Add the last offset to the result
+    result += offsetsList.back();
+    std::cout << "ReadPointerOffsetsUntilLast: " << to_hex_str(result) << std::endl;
+    return result;
+}
+
+
+DataType ReadAddressGeneric(const std::string& dataType, DWORD address, const std::vector<DWORD>& offsetsList = {})
+{
+    static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD>&)>> typeMap =
+    {
+        { "Byte",   [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "2 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "4 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "8 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "Float",  [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "Double", [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<double>(addr) : ReadAddress<double>(ReadPointerOffsetsUntilLast(addr, offs)); } },
+        { "String", [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? std::string(gtlibc.ReadString(addr, 0xFF)) : std::string(gtlibc.ReadString(ReadPointerOffsetsUntilLast(addr, offs),0xFF)); } },
     };
 
     const auto it = typeMap.find(dataType);
@@ -217,7 +255,16 @@ DataType ReadMemoryAddress(const std::string& dataType, DWORD address)
     {
         throw std::runtime_error("Invalid data type specified");
     }
-    return it->second(address);
+    return it->second(address, offsetsList);
+}
+
+
+
+void PrintValue(const DataType &value)
+{
+    std::visit([](const auto &item)
+               { std::cout << item << std::endl; },
+               value);
 }
 
 std::string readFile(const std::string &filename)
@@ -226,13 +273,6 @@ std::string readFile(const std::string &filename)
     std::string content((std::istreambuf_iterator<char>(ifs)),
                         (std::istreambuf_iterator<char>()));
     return content;
-}
-
-void PrintValue(const DataType &value)
-{
-    std::visit([](const auto &item)
-               { std::cout << item << std::endl; },
-               value);
 }
 
 int main()
@@ -246,31 +286,37 @@ int main()
     CheatEntries cheatEntries = parseCheatEntries(xmlData);
 
     // Print the cheat entries using std::cout
+    std::cout << "Cheat Entries: " << std::endl;
+    std::cout << "===============" << std::endl;
 
     for (auto &entry : cheatEntries.entries)
     {
 
         const DWORD address = entry->Address;
         const vector<DWORD> offsets = entry->Offsets;
+        
+        // Reverse the order of the offsets so that the first offset is the last one
+        vector<DWORD> offsetsSorted = offsets;
+        std::reverse(offsetsSorted.begin(), offsetsSorted.end());          
 
-        // if (offsets.size() > 1)
-        // {
-        //     // Copy offsets vector and remove the last element
-        //     vector<DWORD> offsetsCopy = offsets;
-        //     offsetsCopy.pop_back();
+        if (offsets.size() > 1)
+        {
+            std::cout << "Description: " << entry->Description << std::endl;
+            std::cout << "Address: " << to_hex_str(address) << std::endl;
+            std::cout << "Offsets: ";
+            for (auto &offset : offsetsSorted)
+            {
+                std::cout << to_hex_str(offset) << ",";
+            }
 
-        //     auto data = gtLibc.ReadPointerOffsets<DWORD>(address, offsetsCopy) + offsets[offsets.size() - 1]];
-        //     std::cout << "Data: " << data << std::endl;
-        // }
-        // else if (offsets.size() == 1)
-        // {
-        //     auto data = gtLibc.ReadPointerOffset<DWORD>(address, offsets[0]);
-        //     std::cout << "Data: " << data << std::endl;
-        // }
+            auto result = ReadAddressGeneric(entry->VariableType, address, offsetsSorted);
+            PrintValue(result);
+        }
+
         if (offsets.size() == 0 && address != 0)
         {
             std::cout << "Description: " << entry->Description << std::endl;
-            DataType result = ReadMemoryAddress(entry->VariableType, address);
+            DataType result = ReadAddressGeneric(entry->VariableType, address);
             PrintValue(result);
         }
     }

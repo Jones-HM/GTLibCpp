@@ -48,7 +48,7 @@ public:
     bool WriteAddressOffsets(DWORD address, const std::vector<DWORD> &offsets, const T &value);
 
     template <typename T>
-    T ReadPointer(DWORD address, DWORD pointerOffset);
+    T ReadPointer(DWORD address);
     template <typename T>
     bool WritePointer(DWORD address, DWORD pointerOffset, const T &value);
 

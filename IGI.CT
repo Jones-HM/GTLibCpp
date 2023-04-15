@@ -6,7 +6,7 @@
       <Description>"Game_Level"</Description>
       <LastState Value="1" RealAddress="00539560"/>
       <ShowAsSigned>0</ShowAsSigned>
-      <VariableType>2 Bytes</VariableType>
+      <VariableType>Byte</VariableType>
       <Address>"IGI.exe" + 0x139560</Address>
     </CheatEntry>
     <CheatEntry>
@@ -40,6 +40,108 @@
       <CodePage>0</CodePage>
       <ZeroTerminate>1</ZeroTerminate>
       <Address>IGI.exe+7C28C8</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>70</ID>
+      <Description>"Position_X"</Description>
+      <LastState Value="15.46338654" RealAddress="22698008"/>
+      <ShowAsSigned>0</ShowAsSigned>
+      <VariableType>Float</VariableType>
+      <Address>"IGI.exe"+0x0016E210</Address>
+      <Offsets>
+        <Offset>24</Offset>
+        <Offset>14</Offset>
+        <Offset>7CC</Offset>
+        <Offset>8</Offset>
+      </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>88</Key>
+            <Key>38</Key>
+          </Keys>
+          <Value>0.001</Value>
+          <ID>2</ID>
+        </Hotkey>
+        <Hotkey>
+          <Action>Decrease Value</Action>
+          <Keys>
+            <Key>88</Key>
+            <Key>40</Key>
+          </Keys>
+          <Value>0.001</Value>
+          <ID>3</ID>
+        </Hotkey>
+      </Hotkeys>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>71</ID>
+      <Description>"Position_Y"</Description>
+      <LastState Value="-17.34539604" RealAddress="22698010"/>
+      <ShowAsSigned>0</ShowAsSigned>
+      <VariableType>Float</VariableType>
+      <Address>"IGI.exe"+0x0016E210</Address>
+      <Offsets>
+        <Offset>2C</Offset>
+        <Offset>14</Offset>
+        <Offset>7CC</Offset>
+        <Offset>8</Offset>
+      </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>89</Key>
+            <Key>38</Key>
+          </Keys>
+          <Value>0.001</Value>
+          <ID>0</ID>
+        </Hotkey>
+        <Hotkey>
+          <Action>Decrease Value</Action>
+          <Keys>
+            <Key>89</Key>
+            <Key>40</Key>
+          </Keys>
+          <Value>0.001</Value>
+          <ID>1</ID>
+        </Hotkey>
+      </Hotkeys>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>73</ID>
+      <Description>"Position_Z"</Description>
+      <LastState Value="20.59901428" RealAddress="22698018"/>
+      <ShowAsSigned>0</ShowAsSigned>
+      <VariableType>Float</VariableType>
+      <Address>"IGI.exe"+0x0016E210</Address>
+      <Offsets>
+        <Offset>34</Offset>
+        <Offset>14</Offset>
+        <Offset>7CC</Offset>
+        <Offset>8</Offset>
+      </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>90</Key>
+            <Key>38</Key>
+          </Keys>
+          <Value>0.01</Value>
+          <ID>2</ID>
+        </Hotkey>
+        <Hotkey>
+          <Action>Decrease Value</Action>
+          <Keys>
+            <Key>90</Key>
+            <Key>40</Key>
+          </Keys>
+          <Value>0.01</Value>
+          <ID>3</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>18</ID>
@@ -78,15 +180,15 @@
     <CheatEntry>
       <ID>17</ID>
       <Description>"Health"</Description>
-      <LastState Value="0" RealAddress="22698238"/>
+      <LastState Value="0.3000000119" RealAddress="22698238"/>
       <ShowAsSigned>1</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
       <Offsets>
-        <Offset>0x254</Offset>
-        <Offset>0x14</Offset>
-        <Offset>0x7CC</Offset>
-        <Offset>0x8</Offset>
+        <Offset>254</Offset>
+        <Offset>14</Offset>
+        <Offset>7CC</Offset>
+        <Offset>8</Offset>
       </Offsets>
       <Hotkeys>
         <Hotkey>
@@ -98,141 +200,13 @@
           <Value>Nan</Value>
           <ID>0</ID>
         </Hotkey>
-        <Hotkey>
-          <Action>Set Value</Action>
-          <Keys>
-            <Key>9</Key>
-            <Key>75</Key>
-          </Keys>
-          <Value>403A53CF</Value>
-          <ID>1</ID>
-        </Hotkey>
-        <Hotkey>
-          <Action>Set Value</Action>
-          <Keys>
-            <Key>18</Key>
-            <Key>72</Key>
-          </Keys>
-          <Value>0</Value>
-          <ID>2</ID>
-        </Hotkey>
       </Hotkeys>
-    </CheatEntry>
-    <CheatEntry>
-      <ID>2429</ID>
-      <Description>"Player"</Description>
-      <Options moHideChildren="1" moRecursiveSetValue="1" moAllowManualCollapseAndExpand="1"/>
-      <LastState Value="" RealAddress="00000000"/>
-      <GroupHeader>1</GroupHeader>
-      <CheatEntries>
-        <CheatEntry>
-          <ID>70</ID>
-          <Description>"X"</Description>
-          <LastState Value="15.46028137" RealAddress="22698008"/>
-          <ShowAsSigned>0</ShowAsSigned>
-          <VariableType>Float</VariableType>
-          <Address>"IGI.exe"+0x0016E210</Address>
-          <Offsets>
-            <Offset>0x348 - 0x324</Offset>
-            <Offset>0x14</Offset>
-            <Offset>0x7CC</Offset>
-            <Offset>0x8</Offset>
-          </Offsets>
-          <Hotkeys>
-            <Hotkey>
-              <Action>Increase Value</Action>
-              <Keys>
-                <Key>88</Key>
-                <Key>38</Key>
-              </Keys>
-              <Value>0.001</Value>
-              <ID>2</ID>
-            </Hotkey>
-            <Hotkey>
-              <Action>Decrease Value</Action>
-              <Keys>
-                <Key>88</Key>
-                <Key>40</Key>
-              </Keys>
-              <Value>0.001</Value>
-              <ID>3</ID>
-            </Hotkey>
-          </Hotkeys>
-        </CheatEntry>
-        <CheatEntry>
-          <ID>71</ID>
-          <Description>"Y"</Description>
-          <LastState Value="-17.32652092" RealAddress="22698010"/>
-          <ShowAsSigned>0</ShowAsSigned>
-          <VariableType>Float</VariableType>
-          <Address>"IGI.exe"+0x0016E210</Address>
-          <Offsets>
-            <Offset>2C</Offset>
-            <Offset>0x14</Offset>
-            <Offset>0x7CC</Offset>
-            <Offset>0x8</Offset>
-          </Offsets>
-          <Hotkeys>
-            <Hotkey>
-              <Action>Increase Value</Action>
-              <Keys>
-                <Key>89</Key>
-                <Key>38</Key>
-              </Keys>
-              <Value>0.001</Value>
-              <ID>0</ID>
-            </Hotkey>
-            <Hotkey>
-              <Action>Decrease Value</Action>
-              <Keys>
-                <Key>89</Key>
-                <Key>40</Key>
-              </Keys>
-              <Value>0.001</Value>
-              <ID>1</ID>
-            </Hotkey>
-          </Hotkeys>
-        </CheatEntry>
-        <CheatEntry>
-          <ID>73</ID>
-          <Description>"Z"</Description>
-          <LastState Value="20.59901428" RealAddress="22698018"/>
-          <ShowAsSigned>0</ShowAsSigned>
-          <VariableType>Float</VariableType>
-          <Address>"IGI.exe"+0x0016E210</Address>
-          <Offsets>
-            <Offset>0x34</Offset>
-            <Offset>0x14</Offset>
-            <Offset>0x7CC</Offset>
-            <Offset>0x8</Offset>
-          </Offsets>
-          <Hotkeys>
-            <Hotkey>
-              <Action>Increase Value</Action>
-              <Keys>
-                <Key>90</Key>
-                <Key>38</Key>
-              </Keys>
-              <Value>0.01</Value>
-              <ID>2</ID>
-            </Hotkey>
-            <Hotkey>
-              <Action>Decrease Value</Action>
-              <Keys>
-                <Key>90</Key>
-                <Key>40</Key>
-              </Keys>
-              <Value>0.01</Value>
-              <ID>3</ID>
-            </Hotkey>
-          </Hotkeys>
-        </CheatEntry>
-      </CheatEntries>
     </CheatEntry>
     <CheatEntry>
       <ID>76</ID>
       <Description>"STATUS_MSG"</Description>
       <LastState RealAddress="149F7F40"/>
+      <ShowAsSigned>0</ShowAsSigned>
       <VariableType>String</VariableType>
       <Length>260</Length>
       <Unicode>0</Unicode>
@@ -250,7 +224,7 @@
     <CheatEntry>
       <ID>40</ID>
       <Description>"MAGZ"</Description>
-      <LastState Value="FFFFFFFF" RealAddress="226A2960"/>
+      <LastState Value="00000009" RealAddress="226A0A50"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>"IGI.exe"+00671890</Address>
@@ -291,6 +265,9 @@ jmp newmem
 nop
 returnhere:
 
+
+ 
+ 
 [DISABLE]
 dealloc(newmem)
 "IGI.exe"+16D85:
@@ -310,4 +287,65 @@ mov al,[eax+000000E1]
       </Hotkeys>
     </CheatEntry>
   </CheatEntries>
+  <UserdefinedSymbols>
+    <SymbolEntry>
+      <Name>ResourceUnload</Name>
+      <Address>004b6380</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>LoadResource</Name>
+      <Address>004b5f00</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>OpenFile</Name>
+      <Address>004A5350</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>GameTextPrint</Name>
+      <Address>004B6E90</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>HumanViewCam</Name>
+      <Address>00463760</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>DebugSoldier</Name>
+      <Address>00460c80</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>DebugPrint</Name>
+      <Address>004e76e0</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>DebugPlayerData</Name>
+      <Address>004E7BD0</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>DebugPrintText</Name>
+      <Address>004e7c00</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>TextPrint</Name>
+      <Address>004b77f0</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>ShowError</Name>
+      <Address>004AF7B0</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>ShowWarning</Name>
+      <Address>004AF810</Address>
+    </SymbolEntry>
+    <SymbolEntry>
+      <Name>ViewPortUpdate</Name>
+      <Address>00497E70</Address>
+    </SymbolEntry>
+  </UserdefinedSymbols>
+  <DisassemblerComments>
+    <DisassemblerComment>
+      <Address>"IGI.EXE"+7300A</Address>
+      <Comment>64
+</Comment>
+    </DisassemblerComment>
+  </DisassemblerComments>
 </CheatTable>

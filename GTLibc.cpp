@@ -353,13 +353,14 @@ bool GTLibc::WritePointer(DWORD address, DWORD offset, const T &value)
  *
  */
 template <typename T>
-T GTLibc::ReadPointer(DWORD address, DWORD offset)
+T GTLibc::ReadPointer(DWORD address)
 {
+    const DWORD offset = 0;
     AddLog("ReadPointer", "Trying to read pointer at base address: " + to_hex_str(address) + " with offset: " + std::to_string(offset));
     try
     {
         DWORD pointerAddress = ReadAddress<DWORD>(address);
-        T returnValue = ReadAddressOffset<T>(pointerAddress, offset);
+        T returnValue = ReadPointerOffset<T>(pointerAddress, offset);
         AddLog("ReadPointer", "Return value: " + to_hex_str(returnValue));
         return returnValue;
     }
@@ -386,8 +387,8 @@ T GTLibc::ReadPointerOffset(DWORD address, const DWORD offset)
     AddLog("ReadPointerOffset", "Trying to read pointer at base address: " + to_hex_str(address) + " with offset: " + to_hex_str(offset));
     try
     {
-        DWORD pointerAddress = address;
-        pointerAddress = ReadAddress<DWORD>(pointerAddress + offset);
+        DWORD pointerAddress = address + offset;
+        pointerAddress = ReadAddress<DWORD>(pointerAddress);
         AddLog("ReadPointerOffset", "Return value: " + to_hex_str(pointerAddress));
         return pointerAddress;
     }
