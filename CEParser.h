@@ -36,27 +36,24 @@ namespace GTLIBC
               Offsets(offsets), Hotkeys(hotkeys) {}
     };
 
-    class CheatEntries
+    class CheatTable
     {
     public:
         // Create default constructor and parameterized constructor with setting game base address.
-        CheatEntries() = default;
-        CheatEntries(DWORD gameBaseAddress) : gameBaseAddress(gameBaseAddress) {}
+        CheatTable() = default;
+        CheatTable(DWORD gameBaseAddress) : gameBaseAddress(gameBaseAddress) {}
 
-        vector<shared_ptr<CheatEntry>> entries;
-
-        void addEntry(shared_ptr<CheatEntry> entry)
-        {
-            entries.push_back(entry);
-        }
+        vector<shared_ptr<CheatEntry>> cheatEntries;
 
         void SetGameBaseAddress(DWORD gameBaseAddress)
         {
             this->gameBaseAddress = gameBaseAddress;
         }
 
-        // Add ParseCheatTable declaration.
-        CheatEntries ParseCheatTable(const string &cheatTablePath);
+        CheatTable ParseCheatTable(const string &cheatTablePath);
+        void AddCheatEntry(shared_ptr<CheatEntry> entry);
+        void AddCheatEntry(const string &description, int id, const string &variableType, DWORD address,
+                           const vector<DWORD> &offsets, const vector<vector<DWORD>> &hotkeys);
 
     private:
         // Create variable and method to get base address of the game.
@@ -72,7 +69,22 @@ namespace GTLIBC
         void ParseNestedCheatEntries(const string &parentNode, shared_ptr<CheatEntry> &parentEntry);
     };
 
-    DWORD CheatEntries::ParseAddress(const string &address)
+    void CheatTable::AddCheatEntry(shared_ptr<CheatEntry> entry)
+    {
+        cheatEntries.push_back(entry);
+    }
+
+    void CheatTable::AddCheatEntry(const string &description, int id, const string &variableType, DWORD address,
+                                   const vector<DWORD> &offsets, const vector<vector<DWORD>> &hotkeys)
+    {
+        // Create a cheat entry object and pass the parameters to it.
+        auto entry = make_shared<CheatEntry>(description, id, variableType, address, offsets, hotkeys);
+
+        // Add the cheat entry to the cheat table.
+        AddCheatEntry(entry);
+    }
+
+    DWORD CheatTable::ParseAddress(const string &address)
     {
         smatch matches;
         regex_search(address, matches, regex("(\"([^\"]+)\")?([^+]+)?\\s*(\\+)?\\s*(0x)?([0-9A-Fa-f]+)?"));
@@ -93,7 +105,7 @@ namespace GTLIBC
         return baseAddress + offset;
     }
 
-    vector<DWORD> CheatEntries::ParseOffsets(const string &offsets)
+    vector<DWORD> CheatTable::ParseOffsets(const string &offsets)
     {
         vector<DWORD> result;
         smatch matches;
@@ -110,7 +122,7 @@ namespace GTLIBC
         return result;
     }
 
-    vector<vector<DWORD>> CheatEntries::ParseHotkeys(const string &hotkeys)
+    vector<vector<DWORD>> CheatTable::ParseHotkeys(const string &hotkeys)
     {
         vector<vector<DWORD>> result;
         smatch matches;
@@ -141,7 +153,7 @@ namespace GTLIBC
         return result;
     }
 
-    void CheatEntries::ParseNestedCheatEntries(const string &parentNode, shared_ptr<CheatEntry> &parentEntry)
+    void CheatTable::ParseNestedCheatEntries(const string &parentNode, shared_ptr<CheatEntry> &parentEntry)
     {
         smatch entryMatches;
         regex entryRegex("<CheatEntry>.*?</CheatEntry>");
@@ -175,9 +187,9 @@ namespace GTLIBC
         }
     }
 
-    CheatEntries CheatEntries::ParseCheatTable(const string &cheatTablePath)
+    CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath)
     {
-        CheatEntries cheatTable;
+        CheatTable cheatTable;
         smatch entryMatches;
         regex entryRegex("<CheatEntry>([\\s\\S]*?)</CheatEntry>");
         auto entriesBegin = sregex_iterator(cheatTablePath.begin(), cheatTablePath.end(), entryRegex);
@@ -204,8 +216,7 @@ namespace GTLIBC
             vector<vector<DWORD>> hotkeys = ParseHotkeys(entryStr);
             shared_ptr<CheatEntry> entry = make_shared<CheatEntry>(description, id, variableType, address, offsets, hotkeys);
 
-            cheatTable.addEntry(entry);
-
+            cheatTable.AddCheatEntry(entry);
             ParseNestedCheatEntries(entryStr, entry);
         }
 

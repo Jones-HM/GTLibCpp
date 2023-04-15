@@ -805,7 +805,7 @@ void GTLibc::PrintValue(const DataType &value)
                value);
 }
 
-CheatEntries GTLibc::ReadCheatTable(const std::string &filename)
+CheatTable GTLibc::ReadCheatTable(const std::string &filename)
 {
     std::ifstream ifs(filename);
     std::string cheatTableData((std::istreambuf_iterator<char>(ifs)),
@@ -827,17 +827,17 @@ CheatEntries GTLibc::ReadCheatTable(const std::string &filename)
         }
         else
         {
-            CheatEntries cheatEntries(this->gameBaseAddress);
-            return cheatEntries.ParseCheatTable(cheatTableData);
+            CheatTable cheatTable(this->gameBaseAddress);
+            return cheatTable.ParseCheatTable(cheatTableData);
         }
     }
 
-    return CheatEntries();
+    return CheatTable();
 }
 
-void GTLibc::PrintCheatTable(CheatEntries &cheatEntries)
+void GTLibc::PrintCheatTable(CheatTable &cheatTable)
 {
-    for (auto &entry : cheatEntries.entries)
+    for (auto &entry : cheatTable.cheatEntries)
     {
         std::cout << "Description: " << entry->Description << std::endl;
         std::cout << "ID: " << entry->Id << std::endl;
@@ -882,9 +882,9 @@ bool GTLibc::IsValidCheatTable(const std::string &xmlData)
 /*
     Read the generic table and print the results.
 */
-void GTLibc::ReadCheatTableEntries(CheatEntries &cheatEntries)
+void GTLibc::ReadCheatTableEntries(CheatTable &cheatTable)
 {
-    for (auto &entry : cheatEntries.entries)
+    for (auto &entry : cheatTable.cheatEntries)
     {
         const DWORD address = entry->Address;
         const vector<DWORD> offsets = entry->Offsets;

@@ -88,10 +88,9 @@ namespace GTLIBC
         void EnableLogs(bool status);
 
         // Cheat Engine variables.
-        DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
-        CheatEntries ReadCheatTable(const std::string &filename);
-        void PrintCheatTable(CheatEntries &cheatEntries);
-        void ReadCheatTableEntries(CheatEntries &cheatEntries);
+        CheatTable ReadCheatTable(const std::string &filename);
+        void PrintCheatTable(CheatTable &cheatTable);
+        void ReadCheatTableEntries(CheatTable &cheatTable);
 
     private:
         void AddLog(const std::string &methodName, const std::string &logMessage);
@@ -101,6 +100,7 @@ namespace GTLIBC
 
         // Cheat Engine variables.
         void PrintValue(const DataType &value);
+        DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
         DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD> &offsetsList);
         bool IsValidCheatTable(const std::string &xmlData);
 
