@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="29">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>1</ID>
+      <Description>"WallHack (Def. 1) ON=2"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+777DC0</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>2</ID>
+      <Description>"Infinite Ammo (Def. 0) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+776660</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>3</ID>
+      <Description>"FullBright (Def. 0) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>materialsystem.dll+35B048</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>4</ID>
+      <Description>"Force Pure (Def. 0) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>engine.dll+63F534</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>5</ID>
+      <Description>"Force Sv_cheat (Def. 0) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>engine.dll+653B50</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>0</ID>
+      <Description>"NoSmoke (Def. 1) ON=0"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+7CC8E0</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>6</ID>
+      <Description>"No Hand (Def. 1) ON=0"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+7D5E18</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>7</ID>
+      <Description>"NoSpread (Def. 0) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+7EC560</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>19</ID>
+      <Description>"NoRecoil (Def. 2) ON=1"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+7EC4B0</Address>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>22</ID>
+      <Description>"ESP ? (Def. 0)"</Description>
+      <VariableType>4 Bytes</VariableType>
+      <Address>client.dll+77AE40</Address>
+    </CheatEntry>
+  </CheatEntries>
+  <UserdefinedSymbols/>
+</CheatTable>

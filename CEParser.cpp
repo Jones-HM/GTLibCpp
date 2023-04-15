@@ -13,7 +13,7 @@
 #include <ranges>
 #include "GTLibc.cpp"
 
-const DWORD GAME_BASE_ADDRESS = 0x00400000;
+static DWORD GAME_BASE_ADDRESS = 0x00400000;
 GTLibc gtlibc(true);
 
 using namespace std;
@@ -216,16 +216,15 @@ T ReadAddress(DWORD address)
 
 DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD> &offsetsList)
 {
-    if (offsetsList.size() < 2)
-    {
-        throw std::runtime_error("Invalid offsets list: must have at least 2 elements");
-    }
-
     DWORD staticAddress = address - GAME_BASE_ADDRESS;
     DWORD result = gtlibc.ReadPointerOffset<DWORD>(GAME_BASE_ADDRESS, staticAddress);
-    for (size_t i = 0; i < offsetsList.size() - 1; ++i)
+
+    if (offsetsList.size() > 1)
     {
-        result = gtlibc.ReadPointerOffset<DWORD>(result, offsetsList[i]);
+        for (size_t i = 0; i < offsetsList.size() - 1; ++i)
+        {
+            result = gtlibc.ReadPointerOffset<DWORD>(result, offsetsList[i]);
+        }
     }
 
     // Add the last offset to the result
@@ -264,11 +263,11 @@ DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const st
 void PrintValue(const DataType &value)
 {
     std::visit([](const auto &item)
-               { std::cout << item << std::endl; },
+               { std::cout << "Value: " << item << std::endl; },
                value);
 }
 
-std::string readFile(const std::string &filename)
+std::string ReadCheatTable(const std::string &filename)
 {
     std::ifstream ifs(filename);
     std::string content((std::istreambuf_iterator<char>(ifs)),
@@ -276,29 +275,65 @@ std::string readFile(const std::string &filename)
     return content;
 }
 
-int main()
+void PrintGenericTable(CheatEntries &cheatEntries)
 {
-    string xmlData = readFile("IGI.ct");
-    gtlibc.FindGameProcess("igi");
-
-    // Parse the XML data and populate the cheat entries
-    CheatEntries cheatEntries = parseCheatEntries(xmlData);
-
     for (auto &entry : cheatEntries.entries)
     {
+        std::cout << "Description: " << entry->Description << std::endl;
+        std::cout << "ID: " << entry->Id << std::endl;
+        std::cout << "VariableType: " << entry->VariableType << std::endl;
+        std::cout << "Address: " << entry->Address << std::endl;
+        std::cout << "Offsets: ";
+        for (auto &offset : entry->Offsets)
+        {
+            std::cout << offset << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Hotkeys: ";
+        for (auto &hotkey : entry->Hotkeys)
+        {
+            std::cout << "[";
+            for (auto &key : hotkey)
+            {
+                std::cout << key << " ";
+            }
+            std::cout << "] ";
+        }
+        std::cout << std::endl;
+        std::cout << std::endl;
+    }
+}
 
+// Check if cheat table is valid XML check for tags.
+bool IsValidCheatTable(const std::string &xmlData)
+{
+    std::string_view xmlDataView = xmlData;
+    if (xmlDataView.find("<CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    if (xmlDataView.find("</CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    return true;
+}
+
+void ReadGenericTable(CheatEntries &cheatEntries)
+{
+    for (auto &entry : cheatEntries.entries)
+    {
         const DWORD address = entry->Address;
         const vector<DWORD> offsets = entry->Offsets;
 
-        // Reverse the order of the offsets so that the first offset is the last one
         vector<DWORD> offsetsSorted = offsets;
         std::reverse(offsetsSorted.begin(), offsetsSorted.end());
 
-        if (offsets.size() > 1)
+        if (offsets.size() >= 1)
         {
-            std::cout << "Description: " << entry->Description << std::endl;
-            std::cout << "Address: " << to_hex_str(address) << std::endl;
-            std::cout << "Offsets: ";
+            std::cout << "Description: " << entry->Description;
+            std::cout << " Address: " << to_hex_str(address);
+            std::cout << " Offsets: ";
             for (auto &offset : offsetsSorted)
             {
                 std::cout << to_hex_str(offset) << ",";
@@ -310,11 +345,43 @@ int main()
 
         if (offsets.size() == 0 && address != 0)
         {
-            std::cout << "Description: " << entry->Description << std::endl;
+            std::cout << "Description: " << entry->Description << " ";
             DataType result = ReadAddressGeneric(entry->VariableType, address);
             PrintValue(result);
         }
     }
+}
+
+int main()
+{
+    // Selecting the cheat table file.
+    //string cheatTableFile = "assault_cube.ct";
+    string cheatTableFile = "igi.ct";
+
+    // Read the cheat table file
+    string xmlData = ReadCheatTable(cheatTableFile);
+
+    bool isValid = IsValidCheatTable(xmlData);
+    if (!isValid)
+    {
+        std::cout << "Invalid XML file"
+                  << " '" << cheatTableFile << "'" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Finding the game process
+    std::string gameName = "igi";
+    gtlibc.FindGameProcess(gameName);
+    GAME_BASE_ADDRESS = gtlibc.GetGameBaseAddress();
+
+    // Parse the XML data and populate the cheat entries
+    CheatEntries cheatEntries = parseCheatEntries(xmlData);
+
+    // Print the cheat entries with read values
+    ReadGenericTable(cheatEntries);
+
+    // Print count the cheat entries
+    std::cout << "Count: " << cheatEntries.entries.size() << std::endl;
 
     return 0;
 }
