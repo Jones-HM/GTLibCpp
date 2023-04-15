@@ -64,13 +64,11 @@ DWORD parseAddress(const string &address)
     if (isModuleNameHex)
     {
         DWORD absoluteAddress = stoul(moduleName, nullptr, 16);
-        //std::cout << "Address: " << address << " Absolute address: " << to_hex_str(absoluteAddress) << std::endl;
         return absoluteAddress;
     }
 
     DWORD offset = offsetStr.empty() ? 0 : stoul(offsetStr, nullptr, 16);
     DWORD baseAddress = moduleName.empty() ? 0 : getBaseAddress(moduleName);
-    //std::cout << "Address: " << address << " Base address: " << to_hex_str(baseAddress) << " Module name: " << moduleName << " offset: " << offsetStr << std::endl;
     return baseAddress + offset;
 }
 
@@ -144,7 +142,7 @@ void parseNestedCheatEntries(const string &parentNode, shared_ptr<CheatEntry> &p
         string variableType = matches[1].str();
 
         regex_search(entryStr, matches, regex("<Address>(.*?)</Address>"));
-        DWORD address = variableType == "Auto Assembler Script" ? 0 :parseAddress(matches[1].str());
+        DWORD address = variableType == "Auto Assembler Script" ? 0 : parseAddress(matches[1].str());
 
         vector<DWORD> offsets = parseOffsets(entryStr);
         vector<vector<DWORD>> hotkeys = parseHotkeys(entryStr);
@@ -179,7 +177,7 @@ CheatEntries parseCheatEntries(const string &xmlData)
         string variableType = matches[1].str();
 
         regex_search(entryStr, matches, regex("<Address>(.*?)</Address>"));
-        DWORD address = variableType == "Auto Assembler Script" ? 0 :parseAddress(matches[1].str());
+        DWORD address = variableType == "Auto Assembler Script" ? 0 : parseAddress(matches[1].str());
 
         vector<DWORD> offsets = parseOffsets(entryStr);
         vector<vector<DWORD>> hotkeys = parseHotkeys(entryStr);
@@ -203,7 +201,7 @@ T ReadPointerOffset(DWORD address, const DWORD offset)
 }
 
 template <typename T>
-T ReadPointerOffsets(DWORD address, const std::vector<DWORD>& offsetsList)
+T ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsetsList)
 {
     T result = gtlibc.ReadPointerOffsets<T>(address, offsetsList);
     return result;
@@ -216,7 +214,7 @@ T ReadAddress(DWORD address)
     return result;
 }
 
-DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD>& offsetsList)
+DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD> &offsetsList)
 {
     if (offsetsList.size() < 2)
     {
@@ -224,7 +222,7 @@ DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD>& offse
     }
 
     DWORD staticAddress = address - GAME_BASE_ADDRESS;
-    DWORD result = gtlibc.ReadPointerOffset<DWORD>(GAME_BASE_ADDRESS,staticAddress);
+    DWORD result = gtlibc.ReadPointerOffset<DWORD>(GAME_BASE_ADDRESS, staticAddress);
     for (size_t i = 0; i < offsetsList.size() - 1; ++i)
     {
         result = gtlibc.ReadPointerOffset<DWORD>(result, offsetsList[i]);
@@ -232,23 +230,28 @@ DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD>& offse
 
     // Add the last offset to the result
     result += offsetsList.back();
-    std::cout << "ReadPointerOffsetsUntilLast: " << to_hex_str(result) << std::endl;
     return result;
 }
 
-
-DataType ReadAddressGeneric(const std::string& dataType, DWORD address, const std::vector<DWORD>& offsetsList = {})
+DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {})
 {
-    static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD>&)>> typeMap =
-    {
-        { "Byte",   [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "2 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "4 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "8 Bytes",[](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "Float",  [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "Double", [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? ReadAddress<double>(addr) : ReadAddress<double>(ReadPointerOffsetsUntilLast(addr, offs)); } },
-        { "String", [](DWORD addr, const std::vector<DWORD>& offs) { return offs.empty() ? std::string(gtlibc.ReadString(addr, 0xFF)) : std::string(gtlibc.ReadString(ReadPointerOffsetsUntilLast(addr, offs),0xFF)); } },
-    };
+    static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
+        {
+            {"Byte", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"2 Bytes", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"4 Bytes", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"8 Bytes", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"Float", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"Double", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<double>(addr) : ReadAddress<double>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"String", [](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? std::string(gtlibc.ReadString(addr, 0xFF)) : std::string(gtlibc.ReadString(ReadPointerOffsetsUntilLast(addr, offs), 0xFF)); }},
+        };
 
     const auto it = typeMap.find(dataType);
     if (it == typeMap.end())
@@ -257,8 +260,6 @@ DataType ReadAddressGeneric(const std::string& dataType, DWORD address, const st
     }
     return it->second(address, offsetsList);
 }
-
-
 
 void PrintValue(const DataType &value)
 {
@@ -277,27 +278,21 @@ std::string readFile(const std::string &filename)
 
 int main()
 {
-
-    // Read the XML data from a file or any other source
     string xmlData = readFile("IGI.ct");
     gtlibc.FindGameProcess("igi");
 
     // Parse the XML data and populate the cheat entries
     CheatEntries cheatEntries = parseCheatEntries(xmlData);
 
-    // Print the cheat entries using std::cout
-    std::cout << "Cheat Entries: " << std::endl;
-    std::cout << "===============" << std::endl;
-
     for (auto &entry : cheatEntries.entries)
     {
 
         const DWORD address = entry->Address;
         const vector<DWORD> offsets = entry->Offsets;
-        
+
         // Reverse the order of the offsets so that the first offset is the last one
         vector<DWORD> offsetsSorted = offsets;
-        std::reverse(offsetsSorted.begin(), offsetsSorted.end());          
+        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
 
         if (offsets.size() > 1)
         {
