@@ -1,15 +1,18 @@
 #include "GTLibc.h"
+using namespace GTLIBC;
 
 GTLibc::GTLibc()
 {
     logFile = "GTLibc.log";
     enableLogs = false;
+    g_GTLibc = this;
 }
 
 GTLibc::GTLibc(bool enableLogs)
 {
     logFile = "GTLibc.log";
     this->enableLogs = enableLogs;
+    g_GTLibc = this;
 }
 
 GTLibc::GTLibc(const std::string &gameName)
@@ -17,6 +20,7 @@ GTLibc::GTLibc(const std::string &gameName)
     logFile = "GTLibc.log";
     enableLogs = false;
     FindGameProcess(gameName);
+    g_GTLibc = this;
 }
 
 GTLibc::~GTLibc()
@@ -25,6 +29,7 @@ GTLibc::~GTLibc()
     {
         CloseHandle(gameHandle);
     }
+    g_GTLibc = nullptr;
 }
 
 /*
@@ -745,6 +750,169 @@ bool GTLibc::IsKeyToggled(int keycode)
         return false;
     }
     return false;
+}
+
+DWORD GTLibc::ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD> &offsetsList)
+{
+    DWORD staticAddress = address - gameBaseAddress;
+    DWORD result = ReadPointerOffset<DWORD>(gameBaseAddress, staticAddress);
+
+    if (offsetsList.size() > 1)
+    {
+        for (size_t i = 0; i < offsetsList.size() - 1; ++i)
+        {
+            result = ReadPointerOffset<DWORD>(result, offsetsList[i]);
+        }
+    }
+
+    // Add the last offset to the result
+    result += offsetsList.back();
+    return result;
+}
+
+DataType GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList)
+{
+    static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
+        {
+            {"Byte", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"2 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"4 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"8 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"Float", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"Double", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? ReadAddress<double>(addr) : ReadAddress<double>(ReadPointerOffsetsUntilLast(addr, offs)); }},
+            {"String", [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? std::string(ReadString(addr, 0xFF)) : std::string(ReadString(ReadPointerOffsetsUntilLast(addr, offs), 0xFF)); }},
+        };
+
+    const auto it = typeMap.find(dataType);
+    if (it == typeMap.end())
+    {
+        throw std::runtime_error("Invalid data type specified");
+    }
+    return it->second(address, offsetsList);
+}
+
+void GTLibc::PrintValue(const DataType &value)
+{
+    std::visit([](const auto &item)
+               { std::cout << "Value: " << item << std::endl; },
+               value);
+}
+
+CheatEntries GTLibc::ReadCheatTable(const std::string &filename)
+{
+    std::ifstream ifs(filename);
+    std::string cheatTableData((std::istreambuf_iterator<char>(ifs)),
+                        (std::istreambuf_iterator<char>()));
+    if (cheatTableData.empty())
+    {
+        AddLog("ReadCheatTable", "Error: Could not read file: " + filename);
+        ShowError("Could not read file: " + filename);
+    }
+
+    else if (IsValidCheatTable(cheatTableData))
+    {
+        AddLog("ReadCheatTable", "Successfully read file: " + filename);
+        // Show Error if gameBaseAddress is not set and is trying to read cheat table.
+        if (gameBaseAddress == 0)
+        {
+            AddLog("ReadCheatTable", "Error: GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
+            ShowError("GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
+        }
+        else
+        {
+            CheatEntries cheatEntries(this->gameBaseAddress);
+            return cheatEntries.ParseCheatTable(cheatTableData);
+        }
+    }
+
+    return CheatEntries();
+}
+
+void GTLibc::PrintCheatTable(CheatEntries &cheatEntries)
+{
+    for (auto &entry : cheatEntries.entries)
+    {
+        std::cout << "Description: " << entry->Description << std::endl;
+        std::cout << "ID: " << entry->Id << std::endl;
+        std::cout << "VariableType: " << entry->VariableType << std::endl;
+        std::cout << "Address: " << entry->Address << std::endl;
+        std::cout << "Offsets: ";
+        for (auto &offset : entry->Offsets)
+        {
+            std::cout << offset << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Hotkeys: ";
+        for (auto &hotkey : entry->Hotkeys)
+        {
+            std::cout << "[";
+            for (auto &key : hotkey)
+            {
+                std::cout << key << " ";
+            }
+            std::cout << "] ";
+        }
+        std::cout << std::endl;
+        std::cout << std::endl;
+    }
+}
+
+// Check if cheat table is valid XML check for tags.
+bool GTLibc::IsValidCheatTable(const std::string &xmlData)
+{
+    std::string_view xmlDataView = xmlData;
+    if (xmlDataView.find("<CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    if (xmlDataView.find("</CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    return true;
+}
+
+/*
+    Read the generic table and print the results.
+*/
+void GTLibc::ReadCheatTableEntries(CheatEntries &cheatEntries)
+{
+    for (auto &entry : cheatEntries.entries)
+    {
+        const DWORD address = entry->Address;
+        const vector<DWORD> offsets = entry->Offsets;
+
+        vector<DWORD> offsetsSorted = offsets;
+        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
+
+        if (offsets.size() >= 1)
+        {
+            std::cout << "Description: " << entry->Description;
+            std::cout << " Address: " << to_hex_str(address);
+            std::cout << " Offsets: ";
+            for (auto &offset : offsetsSorted)
+            {
+                std::cout << to_hex_str(offset) << ",";
+            }
+
+            auto result = ReadAddressGeneric(entry->VariableType, address, offsetsSorted);
+            PrintValue(result);
+        }
+
+        if (offsets.size() == 0 && address != 0)
+        {
+            std::cout << "Description: " << entry->Description << " ";
+            DataType result = ReadAddressGeneric(entry->VariableType, address);
+            PrintValue(result);
+        }
+    }
 }
 
 void GTLibc::AddLog(const std::string &methodName, const std::string &message)
