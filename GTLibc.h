@@ -89,8 +89,12 @@ namespace GTLIBC
 
         // Cheat Engine variables.
         CheatTable ReadCheatTable(const std::string &filename);
-        void PrintCheatTable(CheatTable &cheatTable);
-        void ReadCheatTableEntries(CheatTable &cheatTable);
+        void PrintCheatTable();
+        void ReadCheatTableEntries();
+        template <typename T>
+        void AddCheatEntry(const string &description, const string &dataType, const DWORD address,
+                           const vector<DWORD> &offsets, const std::vector<DWORD> &hotkeys, const std::string &hotkeyAction,
+                           T hotkeyValue);
 
     private:
         void AddLog(const std::string &methodName, const std::string &logMessage);
@@ -113,6 +117,7 @@ namespace GTLIBC
         std::string logFile;
     };
     inline GTLibc* g_GTLibc{};
+    inline static CheatTable g_CheatTable;
 }
 
 #endif

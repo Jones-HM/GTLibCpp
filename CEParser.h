@@ -83,11 +83,6 @@ namespace GTLIBC
         void AddCheatEntry(shared_ptr<CheatEntry> entry);
         void AddCheatEntry(const string &description, int id, const string &dataType, const DWORD address,
                            const vector<DWORD> &offsets, const HOTKEY &hotkeys);
-        template <typename T>
-        void AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const std::vector<int> &hotkeys_int, const std::string &hotkeyAction,
-                           T hotkeyValue);
-
     private:
         // Create variable and method to get base address of the game.
         DWORD gameBaseAddress = 0x00400000;
@@ -115,19 +110,6 @@ namespace GTLIBC
 
         // Add the cheat entry to the cheat table.
         AddCheatEntry(entry);
-    }
-
-    template <typename T>
-    void CheatTable::AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                                   const vector<DWORD> &offsets, const std::vector<int> &hotkeys_int, const std::string &hotkeyAction,
-                                   T hotkeyValue)
-    {
-        int id = cheatEntries.size();
-
-        // Convert vector<int> to vector<DWORD>
-        vector<DWORD> hotkeys(hotkeys_int.begin(), hotkeys_int.end());
-        const HOTKEY hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
-        AddCheatEntry(description, id, dataType, address, offsets, hotkey);
     }
 
     DWORD CheatTable::ParseAddress(const string &address)

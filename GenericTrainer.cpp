@@ -17,20 +17,21 @@ int main()
     string cheatTableFile = "CheatTable/igi.ct";
 
     // Read the cheat table file
-    CheatTable cheatTable = gtlibc.ReadCheatTable(cheatTableFile);
-    //CheatTable cheatTable;
+    gtlibc.ReadCheatTable(cheatTableFile);
 
     // Add cheat entries Health.
-    //cheatTable.AddCheatEntry<float>("Health", CheatTypes.Float, 0x5693968, vector<DWORD>{596, 20, 1996, 8}, vector<int>{VK_CONTROL,VK_F1}, CheatActions.SetValue, 0.5f);
-
+    //gtlibc.AddCheatEntry<float>("Health", CheatTypes.Float, 0x5693968, vector<DWORD>{596, 20, 1996, 8}, vector<DWORD>{VK_CONTROL,VK_F1}, CheatActions.SetValue, 0.5f);
+    //gtlibc.AddCheatEntry<float>("Armor", CheatTypes.Float, 0x5693968, vector<DWORD>{596, 20, 1996, 8}, vector<DWORD>{VK_CONTROL,VK_F2}, CheatActions.SetValue, 1.0f);
+    //gtlibc.AddCheatEntry<int>("Level", CheatTypes.Integer, 0x5693968, vector<DWORD>{596, 20, 1996, 8}, vector<DWORD>{VK_CONTROL,VK_F3}, CheatActions.Freeze, 1);
+    
     // Print the cheat table
-    gtlibc.PrintCheatTable(cheatTable);
+    gtlibc.PrintCheatTable();
 
     // Read the cheat table entries
-    // gtlibc.ReadCheatTableEntries(cheatTable);
+    // gtlibc.ReadCheatTableEntries();
 
     // Print count the cheat entries
-    std::cout << "Count: " << cheatTable.cheatEntries.size() << std::endl;
+    std::cout << "Count: " << g_CheatTable.cheatEntries.size() << std::endl;
 
     return 0;
 }

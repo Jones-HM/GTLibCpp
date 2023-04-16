@@ -814,6 +814,7 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile)
     {
         AddLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
         ShowError("Could not read file: " + cheatTableFile);
+        return CheatTable();
     }
 
     else if (IsValidCheatTable(cheatTableData))
@@ -827,13 +828,24 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile)
         }
         else
         {
-            CheatTable cheatTable(this->gameBaseAddress);
-            return cheatTable.ParseCheatTable(cheatTableData);
+            g_CheatTable.SetGameBaseAddress(gameBaseAddress);
+            g_CheatTable = g_CheatTable.ParseCheatTable(cheatTableData);
+            return g_CheatTable;
         }
     }
 
     return CheatTable();
 }
+
+    template <typename T>
+    void GTLibc::AddCheatEntry(const string &description, const string &dataType, const DWORD address,
+                                   const vector<DWORD> &offsets, const std::vector<DWORD> &hotkeys, const std::string &hotkeyAction,
+                                   T hotkeyValue)
+    {
+        int id = g_CheatTable.cheatEntries.size();
+        const HOTKEY hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
+        g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
+    }
 
 // Create a method to convert keycodes to Key names
 std::string KeyCodeToName(int keyCode)
@@ -852,9 +864,9 @@ std::string KeyCodeToName(int keyCode)
     return std::string(keyName);
 }
 
-void GTLibc::PrintCheatTable(CheatTable &cheatTable)
+void GTLibc::PrintCheatTable()
 {
-    for (auto &entry : cheatTable.cheatEntries)
+    for (auto &entry : g_CheatTable.cheatEntries)
     {
         std::cout << "Description: " << entry->Description << std::endl;
         std::cout << "ID: " << entry->Id << std::endl;
@@ -901,9 +913,9 @@ bool GTLibc::IsValidCheatTable(const std::string &xmlData)
 /*
     Read the generic table and print the results.
 */
-void GTLibc::ReadCheatTableEntries(CheatTable &cheatTable)
+void GTLibc::ReadCheatTableEntries()
 {
-    for (auto &entry : cheatTable.cheatEntries)
+    for (auto &entry : g_CheatTable.cheatEntries)
     {
         const DWORD address = entry->Address;
         const vector<DWORD> offsets = entry->Offsets;
