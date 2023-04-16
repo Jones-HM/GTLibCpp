@@ -805,20 +805,20 @@ void GTLibc::PrintValue(const DataType &value)
                value);
 }
 
-CheatTable GTLibc::ReadCheatTable(const std::string &filename)
+CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile)
 {
-    std::ifstream ifs(filename);
+    std::ifstream ifs(cheatTableFile);
     std::string cheatTableData((std::istreambuf_iterator<char>(ifs)),
-                        (std::istreambuf_iterator<char>()));
+                               (std::istreambuf_iterator<char>()));
     if (cheatTableData.empty())
     {
-        AddLog("ReadCheatTable", "Error: Could not read file: " + filename);
-        ShowError("Could not read file: " + filename);
+        AddLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
+        ShowError("Could not read file: " + cheatTableFile);
     }
 
     else if (IsValidCheatTable(cheatTableData))
     {
-        AddLog("ReadCheatTable", "Successfully read file: " + filename);
+        AddLog("ReadCheatTable", "Successfully read file: " + cheatTableFile);
         // Show Error if gameBaseAddress is not set and is trying to read cheat table.
         if (gameBaseAddress == 0)
         {
@@ -835,6 +835,23 @@ CheatTable GTLibc::ReadCheatTable(const std::string &filename)
     return CheatTable();
 }
 
+// Create a method to convert keycodes to Key names
+std::string KeyCodeToName(int keyCode)
+{
+    // Map the key code to a scan code.
+    UINT scanCode = MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
+    if (scanCode == 0)
+        return std::string();
+
+    // Map the scan code to a key name.
+    char keyName[256];
+    int result = GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName));
+    if (result == 0)
+        return std::string();
+
+    return std::string(keyName);
+}
+
 void GTLibc::PrintCheatTable(CheatTable &cheatTable)
 {
     for (auto &entry : cheatTable.cheatEntries)
@@ -849,17 +866,19 @@ void GTLibc::PrintCheatTable(CheatTable &cheatTable)
             std::cout << offset << " ";
         }
         std::cout << std::endl;
-        std::cout << "Hotkeys: ";
+        std::cout << "Hotkeys: " << std::endl;
         for (auto &hotkey : entry->Hotkeys)
         {
-            std::cout << "[";
-            for (auto &key : hotkey)
+            std::cout << "  Action: " << std::get<0>(hotkey) << std::endl;
+            std::cout << "  Keys: [";
+            for (auto &key : std::get<1>(hotkey))
             {
-                std::cout << key << " ";
+                std::cout << KeyCodeToName(key) << " ";
             }
-            std::cout << "] ";
+            std::cout << "]" << std::endl;
+            std::cout << "  Value: " << std::get<2>(hotkey) << std::endl;
+            std::cout << "  ID: " << std::get<3>(hotkey) << std::endl;
         }
-        std::cout << std::endl;
         std::cout << std::endl;
     }
 }

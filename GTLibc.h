@@ -6,9 +6,6 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <windows.h>
-#include <tlhelp32.h>
-#include <psapi.h>
 #include <stdexcept>
 #include <ctime>
 #include <iomanip>
@@ -17,6 +14,9 @@
 #include <ostream>
 #include <regex>
 #include <variant>
+#include <windows.h>
+#include <tlhelp32.h>
+#include <psapi.h>
 #include "CEParser.h"
 
 #define to_hex_str(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << "0x" << std::uppercase << std::hex << hex_val)).str()
