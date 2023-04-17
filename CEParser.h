@@ -32,6 +32,12 @@ namespace GTLIBC
         string DecreaseValue;
         string Freeze;
         string Unfreeze;
+
+        template <typename T>
+        std::size_t operator()(T t) const
+        {
+            return static_cast<std::size_t>(t);
+        }
     };
 
     // Define CheatDataType struct
@@ -79,7 +85,7 @@ namespace GTLIBC
             this->gameBaseAddress = gameBaseAddress;
         }
 
-        CheatTable ParseCheatTable(const string &cheatTablePath);
+        CheatTable ParseCheatTable(const string &cheatTablePath,int entries);
         void AddCheatEntry(shared_ptr<CheatEntry> entry);
         void AddCheatEntry(const string &description, int id, const string &dataType, const DWORD address,
                            const vector<DWORD> &offsets, const HOTKEY &hotkeys);
@@ -219,7 +225,7 @@ namespace GTLIBC
         }
     }
 
-    CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath)
+    CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath,int entries=-1)
     {
         CheatTable cheatTable;
         smatch entryMatches;
@@ -250,6 +256,11 @@ namespace GTLIBC
 
             cheatTable.AddCheatEntry(entry);
             ParseNestedCheatEntries(entryStr, entry);
+
+            if (entries > 0 && cheatTable.cheatEntries.size() >= entries)
+            {
+                break;
+            }
         }
 
         return cheatTable;

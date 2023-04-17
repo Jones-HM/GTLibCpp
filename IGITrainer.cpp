@@ -53,7 +53,7 @@ void SetHealth()
 {
     int unlimited_health = 0xFFFFFFFF;
     DWORD health_address = GetHumanBaseAddress() - 0xF4;
-    std::cout << "Health address: " << to_hex_str(health_address) << std::endl;
+    std::cout << "Health address: " << to_hex_string(health_address) << std::endl;
     if (gtlibc.WriteAddress(health_address, unlimited_health))
     {
         std::cout << "[+] Unlimited health enabled" << std::endl;

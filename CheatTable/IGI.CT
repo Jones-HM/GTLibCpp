@@ -10,22 +10,13 @@
       <Address>"IGI.exe" + 0x139560</Address>
       <Hotkeys>
         <Hotkey>
-          <Action>Activate</Action>
+          <Action>Set Value</Action>
           <Keys>
             <Key>17</Key>
-            <Key>16</Key>
-            <Key>70</Key>
+            <Key>76</Key>
           </Keys>
+          <Value>12</Value>
           <ID>0</ID>
-        </Hotkey>
-        <Hotkey>
-          <Action>Deactivate</Action>
-          <Keys>
-            <Key>17</Key>
-            <Key>16</Key>
-            <Key>85</Key>
-          </Keys>
-          <ID>1</ID>
         </Hotkey>
       </Hotkeys>
     </CheatEntry>
@@ -49,7 +40,7 @@
             <Key>17</Key>
             <Key>70</Key>
           </Keys>
-          <Value>Nan</Value>
+          <Value>0.5</Value>
           <ID>0</ID>
         </Hotkey>
       </Hotkeys>
@@ -91,7 +82,7 @@
     <CheatEntry>
       <ID>40</ID>
       <Description>"MAGZ"</Description>
-      <LastState Value="0000000E" RealAddress="2628AB98"/>
+      <LastState Value="00000020" RealAddress="2628AB98"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>"IGI.exe"+00671890</Address>
@@ -102,10 +93,11 @@
       </Offsets>
       <Hotkeys>
         <Hotkey>
-          <Action>Toggle Activation Allow Increase</Action>
+          <Action>Activate</Action>
           <Keys>
             <Key>17</Key>
-            <Key>191</Key>
+            <Key>16</Key>
+            <Key>77</Key>
           </Keys>
           <ID>0</ID>
         </Hotkey>
@@ -118,6 +110,18 @@
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>2 Bytes</VariableType>
       <Address>00bc28e8</Address>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Set Value</Action>
+          <Keys>
+            <Key>18</Key>
+            <Key>65</Key>
+            <Key>77</Key>
+          </Keys>
+          <Value>14</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>187</ID>
@@ -130,6 +134,18 @@
       <CodePage>0</CodePage>
       <ZeroTerminate>1</ZeroTerminate>
       <Address>IGI.exe+7C28C8</Address>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Set Value</Action>
+          <Keys>
+            <Key>18</Key>
+            <Key>65</Key>
+            <Key>78</Key>
+          </Keys>
+          <Value>HeavenHM</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>189</ID>
@@ -146,7 +162,7 @@
     <CheatEntry>
       <ID>70</ID>
       <Description>"Position_X"</Description>
-      <LastState Value="15.45606327" RealAddress="26281C58"/>
+      <LastState Value="15.45672417" RealAddress="26281C58"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -180,7 +196,7 @@
     <CheatEntry>
       <ID>71</ID>
       <Description>"Position_Y"</Description>
-      <LastState Value="-17.32666206" RealAddress="26281C60"/>
+      <LastState Value="-17.32836723" RealAddress="26281C60"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -307,4 +323,5 @@ mov al,[eax+000000E1]
       </Hotkeys>
     </CheatEntry>
   </CheatEntries>
+  <UserdefinedSymbols/>
 </CheatTable>

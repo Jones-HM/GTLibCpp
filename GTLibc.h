@@ -19,7 +19,7 @@
 #include <psapi.h>
 #include "CEParser.h"
 
-#define to_hex_str(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << "0x" << std::uppercase << std::hex << hex_val)).str()
+#define to_hex_string(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << "0x" << std::uppercase << std::hex << hex_val)).str()
 using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
 
 namespace GTLIBC
@@ -27,12 +27,12 @@ namespace GTLIBC
     class GTLibc
     {
     public:
-        GTLibc(); // Default constructor
-        GTLibc(bool enableLogs); // Constructor
+        GTLibc();                            // Default constructor
+        GTLibc(bool enableLogs);             // Constructor
         GTLibc(const std::string &gameName); // Constructor
-        ~GTLibc(); // Destructor
-        GTLibc(const GTLibc&) = default; // Copy constructor
-		GTLibc(GTLibc&&) = default; // Move constructor
+        ~GTLibc();                           // Destructor
+        GTLibc(const GTLibc &) = default;    // Copy constructor
+        GTLibc(GTLibc &&) = default;         // Move constructor
 
         bool FindGameProcess(const std::string &gameName);
         HWND FindGameWindow(const std::string &windowName);
@@ -88,13 +88,24 @@ namespace GTLIBC
         void EnableLogs(bool status);
 
         // Cheat Engine variables.
-        CheatTable ReadCheatTable(const std::string &filename);
+        CheatTable ReadCheatTable(const std::string &filename, int entries);
         void PrintCheatTable();
         void ReadCheatTableEntries();
         template <typename T>
         void AddCheatEntry(const string &description, const string &dataType, const DWORD address,
                            const vector<DWORD> &offsets, const std::vector<DWORD> &hotkeys, const std::string &hotkeyAction,
                            T hotkeyValue);
+        void ActivateCheatEntries(const std::vector<int> &cheatEntryIndex);
+        void ExecuteCheatTable();
+
+        template <typename T>
+        void CheatAction_SetValue(DWORD address, T value);
+
+        template <typename T>
+        void CheatAction_IncreaseValue(DWORD address, T value);
+
+        template <typename T>
+        void CheatAction_DecreaseValue(DWORD address, T value);
 
     private:
         void AddLog(const std::string &methodName, const std::string &logMessage);
@@ -104,9 +115,16 @@ namespace GTLIBC
 
         // Cheat Engine variables.
         void PrintValue(const DataType &value);
+        template <typename T>
+        T ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
         DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
-        DWORD ReadPointerOffsetsUntilLast(DWORD address, const std::vector<DWORD> &offsetsList);
+        DataType ReadAddressGenericWrapper(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
+        DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList);
         bool IsValidCheatTable(const std::string &xmlData);
+        void PrintCheatTableMenu();
+        void ExecuteCheatAction(string &cheatAction, const DWORD &address, DataType &value);
+        template <typename T>
+        void ExecuteCheatAction(string &cheatAction, const DWORD &address, T &value);
 
         std::string gameName;
         HWND gameWindow;
@@ -116,7 +134,7 @@ namespace GTLIBC
         DWORD gameBaseAddress;
         std::string logFile;
     };
-    inline GTLibc* g_GTLibc{};
+    inline GTLibc *g_GTLibc{};
     inline static CheatTable g_CheatTable;
 }
 
