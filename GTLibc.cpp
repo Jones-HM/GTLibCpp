@@ -689,12 +689,46 @@ DWORD GTLibc::GetGameBaseAddress()
     return 0;
 }
 
-/*
- * @brief Checks if Hotkey is down
- * @param None
- * @return bool
- *
- */
+HANDLE GTLibc::GetGameHandle4mHWND(HWND hwnd)
+{
+    AddLog("GetGameHandle4mHWND", "Trying to get game handle");
+    DWORD processId;
+    if (!GetWindowThreadProcessId(hwnd, &processId))
+    {
+        AddLog("GetGameHandle4mHWND", "Error: GetWindowThreadProcessId failed");
+        return NULL;
+    }
+    HANDLE gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+
+    if (!gameHandle)
+    {
+        AddLog("GetGameHandle4mHWND", "Error: OpenProcess failed");
+        return NULL;
+    }
+    else
+    {
+        AddLog("GetGameHandle4mHWND", "Return value: " + to_hex_string(gameHandle));
+        this->gameHandle = gameHandle;
+    }
+    return gameHandle;
+}
+
+DWORD GTLibc::GetProcessID4mHWND(HWND hwnd)
+{
+    AddLog("GetProcessID4mHWND", "Trying to get process ID");
+    DWORD processId;
+
+    if (!GetWindowThreadProcessId(hwnd, &processId)){
+        AddLog("GetProcessID4mHWND", "Error: GetWindowThreadProcessId failed");
+        return 0;
+    }
+    else {
+        AddLog("GetProcessID4mHWND", "Return value: " + to_hex_string(processId));
+        this->processId = processId;
+    }
+
+    return processId;
+}
 
 /**
  * INFO : Hot keys can be in combination of like GT_HotKeysDown(LCTRL,VK_F1) or GT_HotKeysDown(LSHIFT,'F')
@@ -704,16 +738,13 @@ DWORD GTLibc::GetGameBaseAddress()
  * PS : Don't use this method directly instead use 'GT_HotKeysPressed' MACRO.
  */
 
-bool GTLibc::HotKeysDown(INT key, ...)
+bool GTLibc::HotKeysDown(const std::vector<int> &keys)
 {
     short result;
-    va_list list;
 
-    result = GetAsyncKeyState(key);
-    for (va_start(list, key); key; key = va_arg(list, INT))
+    result = GetAsyncKeyState(keys[0]);
+    for (auto &key : keys)
         result &= GetAsyncKeyState(key);
-
-    va_end(list);
 
     return ((result & 0x8000) != 0);
 }
@@ -984,6 +1015,7 @@ void PrintDataType(T type)
     auto name = typeid(type).name();
     string cmd_str = "echo '" + string(name) + "' | c++filt -t";
     system(cmd_str.c_str());
+    // make it return result from system() command.
 }
 
 template <typename T>
@@ -1053,7 +1085,13 @@ void GTLibc::PrintCheatTableMenu()
     }
 }
 
-// Now create method called ExecuteCheatAction which takes parameter as DataType and CheatAction struct and based on value of this it will call relevant method.
+/*
+    Description: This function will execute the cheat action.
+    Params: cheatAction - The action to be executed.
+            address - The address to be executed.
+            value - The value to be executed.
+    Return: void
+*/
 
 void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, DataType &value)
 {
@@ -1107,55 +1145,47 @@ void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, T &va
     }
 }
 
-// define ConvertStringToDataType which will take string and convert it to actual data type based on the content of string.
-DataType ConvertStringToDataType(const std::string &str)
+template <typename T>
+std::optional<T> GTLibc::TryParse(const std::string &str)
 {
     std::stringstream ss(str);
-
-    // Check for integer
-    int int_val;
-    if (ss >> int_val)
+    T value;
+    if (ss >> value)
     {
         if (ss.eof())
         {
-            return int_val;
+            return value;
         }
-        // If not at the end of the string, reset the stringstream
-        ss.clear();
-        ss.seekg(0);
     }
+    return {};
+}
 
-    // Check for double
-    double double_val;
-    if (ss >> double_val)
-    {
-        if (ss.eof())
-        {
-            return double_val;
-        }
-        // If not at the end of the string, reset the stringstream
-        ss.clear();
-        ss.seekg(0);
-    }
+DataType GTLibc::ConvertStringToDataType(const std::string &str)
+{
+    if (auto value = TryParse<std::int16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int64_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint64_t>(str))
+        return *value;
+    if (auto value = TryParse<float>(str))
+        return *value;
+    if (auto value = TryParse<double>(str))
+        return *value;
+    if (auto value = TryParse<long double>(str))
+        return *value;
 
-    // If neither int nor double, return as string
     return str;
 }
 
-// Define method AreHotKeysPressed with parameter as vector of keys in int format and return bool.
-bool AreHotKeysPressed(const vector<int> &keys)
-{
-    short result;
-
-    result = GetAsyncKeyState(keys[0]);
-    for (auto &key : keys)
-        result &= GetAsyncKeyState(key);
-
-    return ((result & 0x8000) != 0);
-}
-
 // Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
-string GetHotKeysName(const vector<int> &keys)
+string GTLibc::GetHotKeysName(const vector<int> &keys)
 {
     string hotkeysName = "";
     for (auto &key : keys)
@@ -1196,9 +1226,9 @@ void GTLibc::ExecuteCheatTable()
     {
         for (auto &entry : g_CheatTable.cheatEntries)
         {
-            //std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
+            // std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
 
-            if (AreHotKeysPressed(entry->HotkeyIds))
+            if (HotKeysDown(entry->HotkeyIds))
             {
                 ExecuteCheatAction(entry->CheatActionStr, entry->Address, entry->Value);
             }

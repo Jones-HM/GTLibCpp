@@ -11,7 +11,7 @@
         <Hotkey>
           <Action>Set Value</Action>
           <Keys>
-            <Key>17</Key>
+            <Key>18</Key>
             <Key>76</Key>
           </Keys>
           <Value>12</Value>
@@ -35,7 +35,7 @@
         <Hotkey>
           <Action>Set Value</Action>
           <Keys>
-            <Key>17</Key>
+            <Key>18</Key>
             <Key>70</Key>
           </Keys>
           <Value>0.5</Value>
@@ -59,8 +59,8 @@
         <Hotkey>
           <Action>Increase Value</Action>
           <Keys>
-            <Key>17</Key>
-            <Key>51</Key>
+            <Key>18</Key>
+            <Key>50</Key>
           </Keys>
           <Value>1</Value>
           <ID>0</ID>
@@ -202,7 +202,7 @@
           <Action>Increase Value</Action>
           <Keys>
             <Key>89</Key>
-            <Key>38</Key>
+            <Key>87</Key>
           </Keys>
           <Value>0.001</Value>
           <ID>0</ID>
@@ -211,7 +211,7 @@
           <Action>Decrease Value</Action>
           <Keys>
             <Key>89</Key>
-            <Key>40</Key>
+            <Key>83</Key>
           </Keys>
           <Value>0.001</Value>
           <ID>1</ID>
@@ -235,7 +235,7 @@
           <Action>Increase Value</Action>
           <Keys>
             <Key>90</Key>
-            <Key>38</Key>
+            <Key>87</Key>
           </Keys>
           <Value>0.01</Value>
           <ID>0</ID>
@@ -244,7 +244,7 @@
           <Action>Decrease Value</Action>
           <Keys>
             <Key>90</Key>
-            <Key>40</Key>
+            <Key>83</Key>
           </Keys>
           <Value>0.01</Value>
           <ID>1</ID>

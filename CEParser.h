@@ -20,7 +20,7 @@
 using namespace std;
 typedef tuple<string, vector<int>, string, int> HOTKEY;
 typedef vector<tuple<string, vector<int>, string, int>> HOTKEYS;
-using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
+using DataType = std::variant<std::int16_t, std::uint16_t, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t, float, double, long double, std::string>;
 
 namespace GTLIBC
 {
