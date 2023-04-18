@@ -18,7 +18,9 @@
 #include <tuple>
 
 using namespace std;
-typedef vector<tuple<string, vector<DWORD>, string, int>> HOTKEY;
+typedef tuple<string, vector<int>, string, int> HOTKEY;
+typedef vector<tuple<string, vector<int>, string, int>> HOTKEYS;
+using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
 
 namespace GTLIBC
 {
@@ -62,11 +64,14 @@ namespace GTLIBC
         string VariableType;
         DWORD Address;
         vector<DWORD> Offsets;
-        HOTKEY Hotkeys;
+        HOTKEYS Hotkeys;
         vector<shared_ptr<CheatEntry>> NestedEntries;
+        DataType Value;
+        string CheatActionStr;
+        vector<int> HotkeyIds;
 
         CheatEntry(const string &description, int id, const string &variableType, DWORD address,
-                   const vector<DWORD> &offsets, const HOTKEY &hotkeys)
+                   const vector<DWORD> &offsets, const HOTKEYS &hotkeys)
             : Description(description), Id(id), VariableType(variableType), Address(address),
               Offsets(offsets), Hotkeys(hotkeys) {}
     };
@@ -88,7 +93,7 @@ namespace GTLIBC
         CheatTable ParseCheatTable(const string &cheatTablePath,int entries);
         void AddCheatEntry(shared_ptr<CheatEntry> entry);
         void AddCheatEntry(const string &description, int id, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const HOTKEY &hotkeys);
+                           const vector<DWORD> &offsets, const HOTKEYS &hotkeys);
     private:
         // Create variable and method to get base address of the game.
         DWORD gameBaseAddress = 0x00400000;
@@ -99,7 +104,7 @@ namespace GTLIBC
 
         DWORD ParseAddress(const string &address);
         vector<DWORD> ParseOffsets(const string &offsets);
-        vector<tuple<string, vector<DWORD>, string, int>> ParseHotkeys(const string &hotkeys);
+        HOTKEYS ParseHotkeys(const string &hotkeys);
         void ParseNestedCheatEntries(const string &parentNode, shared_ptr<CheatEntry> &parentEntry);
     };
 
@@ -109,7 +114,7 @@ namespace GTLIBC
     }
 
     void CheatTable::AddCheatEntry(const string &description, int id, const string &dataType, const DWORD address,
-                                   const vector<DWORD> &offsets, const HOTKEY &hotkeys)
+                                   const vector<DWORD> &offsets, const HOTKEYS &hotkeys)
     {
         // Create a cheat entry object and pass the parameters to it.
         auto entry = make_shared<CheatEntry>(description, id, dataType, address, offsets, hotkeys);
@@ -156,9 +161,9 @@ namespace GTLIBC
         return result;
     }
 
-    vector<tuple<string, vector<DWORD>, string, int>> CheatTable::ParseHotkeys(const string &hotkeys)
+    HOTKEYS CheatTable::ParseHotkeys(const string &hotkeys)
     {
-        vector<tuple<string, vector<DWORD>, string, int>> result;
+        HOTKEYS result;
         smatch matches;
         regex hotkeyRegex("<Hotkey>([\\s\\S]*?)<Action>([\\s\\S]*?)</Action>([\\s\\S]*?)<Keys>([\\s\\S]*?)</Keys>([\\s\\S]*?)<Value>([\\s\\S]*?)</Value>([\\s\\S]*?)<ID>([\\s\\S]*?)</ID>([\\s\\S]*?)</Hotkey>");
 
@@ -168,7 +173,7 @@ namespace GTLIBC
         for (auto i = hotkeysBegin; i != hotkeysEnd; ++i)
         {
             string action = (*i)[2].str();
-            vector<DWORD> keys;
+            vector<int> keys;
             string keysStr = (*i)[4].str();
             // trim the keysStr.
             keysStr = keysStr.substr(1, keysStr.size() - 2);

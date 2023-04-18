@@ -696,22 +696,27 @@ DWORD GTLibc::GetGameBaseAddress()
  *
  */
 
-bool GTLibc::HotKeysDown(int virtualKeyCode)
-{
-    AddLog("HotKeysDown", "Checking if hotkey with virtual key code: " + std::to_string(virtualKeyCode) + " is down");
-    try
-    {
-        return (GetAsyncKeyState(virtualKeyCode) & 0x8000) != 0;
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("HotKeysDown", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        return false;
-    }
-    return false;
-}
+/**
+ * INFO : Hot keys can be in combination of like GT_HotKeysDown(LCTRL,VK_F1) or GT_HotKeysDown(LSHIFT,'F')
+ * @description - check for Hot keys combinations pressed or not.
+ * @param - Combination of hot keys using virtual key_codes or characters A-Z,a-z.
+ * @return - If keys pressed it will return TRUE otherwise returns FALSE.
+ * PS : Don't use this method directly instead use 'GT_HotKeysPressed' MACRO.
+ */
 
+bool GTLibc::HotKeysDown(INT key, ...)
+{
+    short result;
+    va_list list;
+
+    result = GetAsyncKeyState(key);
+    for (va_start(list, key); key; key = va_arg(list, INT))
+        result &= GetAsyncKeyState(key);
+
+    va_end(list);
+
+    return ((result & 0x8000) != 0);
+}
 /*
  * @brief Checks if Hotkey is pressed
  * @param keycode
@@ -952,11 +957,11 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 
 template <typename T>
 void GTLibc::AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const std::vector<DWORD> &hotkeys, const std::string &hotkeyAction,
+                           const vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
                            T hotkeyValue)
 {
     int id = g_CheatTable.cheatEntries.size();
-    const HOTKEY hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
+    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
     g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
 }
 
@@ -1052,6 +1057,7 @@ void GTLibc::PrintCheatTableMenu()
 
 void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, DataType &value)
 {
+    std::cout << "ExecuteCheatAction: trying to execute action: " << cheatAction << " at address: " << to_hex_string(address) << std::endl;
     // Check if type of value is string datatype and if it is then throw error. check compile time.
     if (std::holds_alternative<std::string>(value))
     {
@@ -1136,6 +1142,29 @@ DataType ConvertStringToDataType(const std::string &str)
     return str;
 }
 
+// Define method AreHotKeysPressed with parameter as vector of keys in int format and return bool.
+bool AreHotKeysPressed(const vector<int> &keys)
+{
+    short result;
+
+    result = GetAsyncKeyState(keys[0]);
+    for (auto &key : keys)
+        result &= GetAsyncKeyState(key);
+
+    return ((result & 0x8000) != 0);
+}
+
+// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
+string GetHotKeysName(const vector<int> &keys)
+{
+    string hotkeysName = "";
+    for (auto &key : keys)
+    {
+        hotkeysName += KeyCodeToName(key) + " ";
+    }
+    return hotkeysName;
+}
+
 // Execture the CheatTable.
 void GTLibc::ExecuteCheatTable()
 {
@@ -1143,29 +1172,41 @@ void GTLibc::ExecuteCheatTable()
     PrintCheatTableMenu();
 
     // 2. Resolve the address and values.
-    std::cout << "Entry count " << g_CheatTable.cheatEntries.size() << std::endl;
-
     for (auto &entry : g_CheatTable.cheatEntries)
     {
         vector<DWORD> offsetsSorted = entry->Offsets;
         std::reverse(offsetsSorted.begin(), offsetsSorted.end());
-
         DWORD address = ResolveAddressGeneric(entry->Address, offsetsSorted);
-        std::cout << "Description: " << entry->Description << " Addrress Resolved " << to_hex_string(address) << std::endl;
-        
-        // auto value = ReadAddressGeneric(entry->VariableType, address);
-        auto valueStr = std::get<2>(entry->Hotkeys[0]);
-        
-        auto convertedValue = ConvertStringToDataType(valueStr);
 
-        std::visit([&](auto value)
-                   { ExecuteCheatAction<decltype(value)>(std::get<0>(entry->Hotkeys[0]), address, value); },
-                   convertedValue);
+        string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
+        string cheatAction = std::get<0>(entry->Hotkeys[0]);
+        DataType convertedValue = ConvertStringToDataType(cheatActionValue);
 
-        // ExecuteCheatAction<decltype(actualValue)>(std::get<0>(entry->Hotkeys[0]), address, value);
-        std::cout << "Cheat Action:" << std::get<0>(entry->Hotkeys[0]) << std::endl;
-        // Print datatype of value and value.
-        // std::cout << "Address: " << address << " Value: " << value << std::endl;
+        // Resolve the Hotkeys Ids.
+        entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
+
+        // Update the value in the cheat table.
+        entry->Address = address;
+        entry->Value = convertedValue;
+        entry->CheatActionStr = cheatAction;
+    }
+
+    // 3. Execute the cheat table.
+    while (true)
+    {
+        for (auto &entry : g_CheatTable.cheatEntries)
+        {
+            //std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
+
+            if (AreHotKeysPressed(entry->HotkeyIds))
+            {
+                ExecuteCheatAction(entry->CheatActionStr, entry->Address, entry->Value);
+            }
+            // sleep for 100 ms
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // sleep for 100 ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 

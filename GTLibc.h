@@ -14,6 +14,9 @@
 #include <ostream>
 #include <regex>
 #include <variant>
+#include <thread>
+// Which libraries to use for std::accumulate
+#include <numeric>
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
@@ -21,6 +24,7 @@
 
 #define to_hex_string(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << "0x" << std::uppercase << std::hex << hex_val)).str()
 using DataType = std::variant<BYTE, int16_t, int32_t, int64_t, float, double, std::string>;
+#define HotKeysPressed(...) HotKeysDown(__VA_ARGS__, NULL)
 
 namespace GTLIBC
 {
@@ -82,7 +86,7 @@ namespace GTLIBC
 
         bool SuspendResumeProcess(bool suspend);
         bool Is64bitGame();
-        bool HotKeysDown(int keycode);
+        bool HotKeysDown(int key, ...);
         bool IsKeyPressed(int keycode);
         bool IsKeyToggled(int keycode);
         void EnableLogs(bool status);
@@ -93,7 +97,7 @@ namespace GTLIBC
         void ReadCheatTableEntries();
         template <typename T>
         void AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const std::vector<DWORD> &hotkeys, const std::string &hotkeyAction,
+                           const vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
                            T hotkeyValue);
         void ActivateCheatEntries(const std::vector<int> &cheatEntryIndex);
         void ExecuteCheatTable();

@@ -4,7 +4,6 @@
     <CheatEntry>
       <ID>56</ID>
       <Description>"Game_Level"</Description>
-      <LastState Value="1" RealAddress="00539560"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Byte</VariableType>
       <Address>"IGI.exe" + 0x139560</Address>
@@ -23,7 +22,6 @@
     <CheatEntry>
       <ID>17</ID>
       <Description>"Health"</Description>
-      <LastState Value="0.5" RealAddress="26281E88"/>
       <ShowAsSigned>1</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -48,7 +46,6 @@
     <CheatEntry>
       <ID>18</ID>
       <Description>"HUMAN_VIEW"</Description>
-      <LastState Value="1" RealAddress="26282124"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Byte</VariableType>
       <Address>"IGI.exe"+0016E210</Address>
@@ -82,7 +79,6 @@
     <CheatEntry>
       <ID>40</ID>
       <Description>"MAGZ"</Description>
-      <LastState Value="00000020" RealAddress="2628AB98"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>"IGI.exe"+00671890</Address>
@@ -106,7 +102,6 @@
     <CheatEntry>
       <ID>186</ID>
       <Description>"Player1ActiveMission"</Description>
-      <LastState Value="14" RealAddress="00BC28E8"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>2 Bytes</VariableType>
       <Address>00bc28e8</Address>
@@ -126,7 +121,6 @@
     <CheatEntry>
       <ID>187</ID>
       <Description>"Player1ActiveName"</Description>
-      <LastState RealAddress="00BC28C8"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>String</VariableType>
       <Length>32</Length>
@@ -150,7 +144,6 @@
     <CheatEntry>
       <ID>189</ID>
       <Description>"Player2ActiveName"</Description>
-      <LastState RealAddress="00BC2E2C"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>String</VariableType>
       <Length>32</Length>
@@ -162,7 +155,6 @@
     <CheatEntry>
       <ID>70</ID>
       <Description>"Position_X"</Description>
-      <LastState Value="15.45672417" RealAddress="26281C58"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -177,26 +169,25 @@
           <Action>Increase Value</Action>
           <Keys>
             <Key>88</Key>
-            <Key>38</Key>
+            <Key>87</Key>
           </Keys>
           <Value>0.001</Value>
-          <ID>2</ID>
+          <ID>0</ID>
         </Hotkey>
         <Hotkey>
           <Action>Decrease Value</Action>
           <Keys>
             <Key>88</Key>
-            <Key>40</Key>
+            <Key>83</Key>
           </Keys>
           <Value>0.001</Value>
-          <ID>3</ID>
+          <ID>1</ID>
         </Hotkey>
       </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>71</ID>
       <Description>"Position_Y"</Description>
-      <LastState Value="-17.32836723" RealAddress="26281C60"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -230,7 +221,6 @@
     <CheatEntry>
       <ID>73</ID>
       <Description>"Position_Z"</Description>
-      <LastState Value="20.59901428" RealAddress="26281C68"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>"IGI.exe"+0x0016E210</Address>
@@ -248,7 +238,7 @@
             <Key>38</Key>
           </Keys>
           <Value>0.01</Value>
-          <ID>2</ID>
+          <ID>0</ID>
         </Hotkey>
         <Hotkey>
           <Action>Decrease Value</Action>
@@ -257,14 +247,13 @@
             <Key>40</Key>
           </Keys>
           <Value>0.01</Value>
-          <ID>3</ID>
+          <ID>1</ID>
         </Hotkey>
       </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>76</ID>
       <Description>"STATUS_MSG"</Description>
-      <LastState RealAddress="19938100"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>String</VariableType>
       <Length>260</Length>
