@@ -792,7 +792,486 @@ bool GTLibc::IsKeyToggled(int keycode)
     return false;
 }
 
+// Cheat table public methods.
 
+#ifdef GT_USE_CE_PARSER
+CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries)
+{
+    std::ifstream ifs(cheatTableFile);
+    std::string cheatTableData((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+    if (cheatTableData.empty())
+    {
+        AddLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
+        ShowError("Could not read file: " + cheatTableFile);
+        return CheatTable();
+    }
+
+    else if (IsValidCheatTable(cheatTableData))
+    {
+        AddLog("ReadCheatTable", "Successfully read file: " + cheatTableFile);
+        // Show Error if gameBaseAddress is not set and is trying to read cheat table.
+        if (gameBaseAddress == 0)
+        {
+            AddLog("ReadCheatTable", "Error: GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
+            ShowError("GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
+        }
+        else
+        {
+            g_CheatTable.SetGameBaseAddress(gameBaseAddress);
+            g_CheatTable = g_CheatTable.ParseCheatTable(cheatTableData, entries);
+            return g_CheatTable;
+        }
+    }
+
+    return CheatTable();
+}
+
+template <typename T>
+void GTLibc::AddCheatEntry(const std::string &description, const std::string &dataType, const DWORD address,
+                           const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
+                           T hotkeyValue)
+{
+    int id = g_CheatTable.cheatEntries.size();
+    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
+    g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
+}
+
+void GTLibc::ActivateCheatEntries(const std::vector<int> &cheatEntryIds)
+{
+    g_CheatTable.cheatEntries.erase(
+        std::remove_if(g_CheatTable.cheatEntries.begin(), g_CheatTable.cheatEntries.end(),
+                       [&](const auto &entry)
+                       {
+                           return std::none_of(cheatEntryIds.begin(), cheatEntryIds.end(),
+                                               [&](const auto &index)
+                                               { return g_CheatTable.cheatEntries[index] == entry; });
+                       }),
+        g_CheatTable.cheatEntries.end());
+}
+
+
+template <typename T>
+void GTLibc::CheatAction_SetValue(DWORD address, T value)
+{
+    std::cout << "CheatAction_SetValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
+    PrintDataType(value);
+    WriteAddress<T>(address, value);
+}
+
+template <typename T>
+void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
+{
+    std::cout << "CheatAction_IncreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
+    PrintDataType(value);
+    T currentValue = ReadAddress<T>(address);
+    WriteAddress<T>(address, currentValue + value);
+}
+
+template <typename T>
+void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
+{
+    std::cout << "CheatAction_DecreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
+    PrintDataType(value);
+    T currentValue = ReadAddress<T>(address);
+    WriteAddress<T>(address, currentValue - value);
+}
+
+template <>
+void GTLibc::CheatAction_DecreaseValue<std::string>(DWORD address, std::string value)
+{
+    throw std::runtime_error("Decrease action is not supported for strings");
+}
+
+void GTLibc::PrintCheatTableMenu()
+{
+    int cheatIndex = 1;
+
+    // Loop through all the cheat entries.
+    std::cout << "Index. "
+              << "\t"
+              << "Description"
+              << "\t"
+              << "Action"
+              << "\t"
+              << "Hotkeys" << std::endl;
+
+    for (auto &entry : g_CheatTable.cheatEntries)
+    {
+        // Print the description.
+        std::cout << cheatIndex << ". \t" << entry->Description << "\t";
+
+        // Loop through all the hotkeys.
+        for (auto &hotkey : entry->Hotkeys)
+        {
+            std::cout << " " << std::get<0>(hotkey) << "\t";
+            std::cout << " [";
+            for (auto &key : std::get<1>(hotkey))
+            {
+                std::cout << KeyCodeToName(key) << " ";
+            }
+            std::cout << "] ";
+        }
+        std::cout << "\n"
+                  << std::endl;
+        cheatIndex++;
+    }
+}
+
+/*
+    Description: This function will execute the cheat action.
+    Params: cheatAction - The action to be executed.
+            address - The address to be executed.
+            value - The value to be executed.
+    Return: void
+*/
+
+void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, DataType &value)
+{
+    std::cout << "ExecuteCheatAction: trying to execute action: " << cheatAction << " at address: " << to_hex_string(address) << std::endl;
+    // Check if type of value is string datatype and if it is then throw error. check compile time.
+    if (std::holds_alternative<std::string>(value))
+    {
+        throw std::runtime_error("ExecuteCheatAction is not supported for strings");
+    }
+
+    if (cheatAction == CheatActions.SetValue)
+    {
+        std::visit([this, address](auto &&val)
+                   {
+                    using T = std::decay_t<decltype(val)>;
+                    CheatAction_SetValue<T>(address, val); },
+                   value);
+    }
+    else if (cheatAction == CheatActions.IncreaseValue)
+    {
+        std::visit([this, address](auto &&val)
+                   {
+                using T = std::decay_t<decltype(val)>;
+                CheatAction_IncreaseValue<T>(address, val); },
+                   value);
+    }
+    else if (cheatAction == CheatActions.DecreaseValue)
+    {
+        std::visit([this, address](auto &&val)
+                   {
+                    using T = std::decay_t<decltype(val)>;
+                    CheatAction_DecreaseValue<T>(address, val); },
+                   value);
+    }
+}
+
+template <typename T>
+void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, T &value)
+{
+    if (cheatAction == CheatActions.SetValue)
+    {
+        CheatAction_SetValue<T>(address, value);
+    }
+    else if (cheatAction == CheatActions.IncreaseValue)
+    {
+        CheatAction_IncreaseValue<T>(address, value);
+    }
+    else if (cheatAction == CheatActions.DecreaseValue)
+    {
+        CheatAction_DecreaseValue<T>(address, value);
+    }
+}
+
+// Execture the CheatTable.
+void GTLibc::ExecuteCheatTable()
+{
+    // 1. Print Cheat table menu.
+    PrintCheatTableMenu();
+
+    // 2. Resolve the address and values.
+    for (auto &entry : g_CheatTable.cheatEntries)
+    {
+        std::vector<DWORD> offsetsSorted = entry->Offsets;
+        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
+        DWORD address = ResolveAddressGeneric(entry->Address, offsetsSorted);
+
+        std::string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
+        std::string cheatAction = std::get<0>(entry->Hotkeys[0]);
+        DataType convertedValue = ConvertStringToDataType(cheatActionValue);
+
+        // Resolve the Hotkeys Ids.
+        entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
+
+        // Update the value in the cheat table.
+        entry->Address = address;
+        entry->Value = convertedValue;
+        entry->CheatActionStr = cheatAction;
+    }
+
+    // 3. Execute the cheat table.
+    while (true)
+    {
+        for (auto &entry : g_CheatTable.cheatEntries)
+        {
+            // std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
+
+            if (HotKeysDown(entry->HotkeyIds))
+            {
+                ExecuteCheatAction(entry->CheatActionStr, entry->Address, entry->Value);
+            }
+            // sleep for 100 ms
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        // sleep for 100 ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
+
+void GTLibc::PrintCheatTable()
+{
+    for (auto &entry : g_CheatTable.cheatEntries)
+    {
+        std::cout << "Description: " << entry->Description << std::endl;
+        std::cout << "ID: " << entry->Id << std::endl;
+        std::cout << "VariableType: " << entry->VariableType << std::endl;
+        std::cout << "Address: " << entry->Address << std::endl;
+        std::cout << "Offsets: ";
+        for (auto &offset : entry->Offsets)
+        {
+            std::cout << offset << " ";
+        }
+        std::cout << std::endl;
+        std::cout << "Hotkeys: " << std::endl;
+        for (auto &hotkey : entry->Hotkeys)
+        {
+            std::cout << "  Action: " << std::get<0>(hotkey) << std::endl;
+            std::cout << "  Keys: [";
+            for (auto &key : std::get<1>(hotkey))
+            {
+                std::cout << KeyCodeToName(key) << " ";
+            }
+            std::cout << "]" << std::endl;
+            std::cout << "  Value: " << std::get<2>(hotkey) << std::endl;
+            std::cout << "  ID: " << std::get<3>(hotkey) << std::endl;
+        }
+        std::cout << std::endl;
+    }
+}
+
+// Check if cheat table is valid XML check for tags.
+bool GTLibc::IsValidCheatTable(const std::string &xmlData)
+{
+    std::string_view xmlDataView = xmlData;
+    if (xmlDataView.find("<CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    if (xmlDataView.find("</CheatEntries>") == std::string::npos)
+    {
+        return false;
+    }
+    return true;
+}
+
+/*
+    Read the generic table and print the results.
+*/
+void GTLibc::ReadCheatTableEntries()
+{
+    for (auto &entry : g_CheatTable.cheatEntries)
+    {
+        const DWORD address = entry->Address;
+        const std::vector<DWORD> offsets = entry->Offsets;
+
+        std::vector<DWORD> offsetsSorted = offsets;
+        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
+
+        if (offsets.size() >= 1)
+        {
+            std::cout << "Description: " << entry->Description;
+            std::cout << " Address: " << to_hex_string(address);
+            std::cout << " Offsets: ";
+            for (auto &offset : offsetsSorted)
+            {
+                std::cout << to_hex_string(offset) << ",";
+            }
+
+            auto result = ReadAddressGeneric(entry->VariableType, address, offsetsSorted);
+            PrintValue(result);
+        }
+
+        if (offsets.size() == 0 && address != 0)
+        {
+            std::cout << "Description: " << entry->Description << " ";
+            auto result = ReadAddressGeneric(entry->VariableType, address);
+            PrintValue(result);
+        }
+    }
+}
+#endif
+
+void GTLibc::AddLog(const std::string &methodName, const std::string &message)
+{
+    if (!enableLogs)
+        return;
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&in_time_t), "%T") << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    ss << " [" << methodName << "] " << message;
+
+    std::ofstream ofs(logFile, std::ios_base::out | std::ios_base::app);
+    ofs << ss.str() << std::endl;
+    ofs.close();
+}
+
+void GTLibc::EnableLogs(bool status)
+{
+    AddLog("EnableLogs", "Trying to enable logs");
+    enableLogs = status;
+}
+
+void GTLibc::ShowError(const std::string &errorMessage)
+{
+    MessageBox(NULL, errorMessage.c_str(), "ERROR!", MB_ICONERROR);
+}
+
+void GTLibc::ShowWarning(const std::string &warningMessage)
+{
+    MessageBox(NULL, warningMessage.c_str(), "WARNING!", MB_ICONWARNING);
+}
+
+void GTLibc::ShowInfo(const std::string &infoMessage)
+{
+    MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
+}
+
+template <typename T>
+void GTLibc::PrintDataType(T type)
+{
+    auto name = typeid(type).name();
+    std::string cmd_str = "echo '" + std::string(name) + "' | c++filt -t";
+    system(cmd_str.c_str());
+    // make it return result from system() command.
+}
+
+
+bool GTLibc::CheckGameTrainerArch()
+{
+    SYSTEM_INFO siCurrent = {};
+    SYSTEM_INFO siRemote = {};
+    GetNativeSystemInfo(&siCurrent);
+
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetProcessId(this->gameHandle));
+    if (hSnapshot != INVALID_HANDLE_VALUE)
+    {
+        MODULEENTRY32 me = {};
+        me.dwSize = sizeof(MODULEENTRY32);
+        if (Module32First(hSnapshot, &me))
+        {
+            siRemote.wProcessorArchitecture = (me.modBaseAddr >= (LPBYTE)0x80000000) ? PROCESSOR_ARCHITECTURE_AMD64 : PROCESSOR_ARCHITECTURE_INTEL;
+        }
+        CloseHandle(hSnapshot);
+    }
+
+    if (siCurrent.wProcessorArchitecture != siRemote.wProcessorArchitecture)
+    {
+        if (siCurrent.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL && siRemote.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        {
+            AddLog("CheckGameTrainerArch", "The Trainer is 32-bit and the game is 64-bit.");
+            ShowError("The Trainer is 32-bit and the game is 64-bit.");
+            std::exit(EXIT_FAILURE);
+        }
+        else
+        {
+            AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+            return false;
+        }
+    }
+    else
+    {
+        AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture)+ " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+        return true;
+    }
+}
+
+// Helper function that converts the wProcessorArchitecture value to a string representation. 
+std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture) {
+    switch (wProcessorArchitecture) {
+        case PROCESSOR_ARCHITECTURE_INTEL:
+            return "x86";
+        case PROCESSOR_ARCHITECTURE_ARM:
+            return "ARM";
+        case PROCESSOR_ARCHITECTURE_IA64:
+            return "IA-64";
+        case PROCESSOR_ARCHITECTURE_AMD64:
+            return "x64";
+        case PROCESSOR_ARCHITECTURE_ARM64:
+            return "ARM64";
+        case PROCESSOR_ARCHITECTURE_ALPHA64:
+            return "Alpha64";
+        case PROCESSOR_ARCHITECTURE_SHX:
+            return "SHX";
+        case PROCESSOR_ARCHITECTURE_MIPS:
+            return "MIPS";
+        case PROCESSOR_ARCHITECTURE_PPC:
+            return "PPC";
+        case PROCESSOR_ARCHITECTURE_UNKNOWN:
+        default:
+            return "unknown";
+    }
+}
+
+#ifdef GT_USE_CE_PARSER
+// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
+std::string GTLibc::GetHotKeysName(const std::vector<int> &keys)
+{
+    std::string hotkeysName = "";
+    for (auto &key : keys)
+    {
+        hotkeysName += KeyCodeToName(key) + " ";
+    }
+    return hotkeysName;
+}
+
+DataType GTLibc::ConvertStringToDataType(const std::string &str)
+{
+    if (auto value = TryParse<std::int16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int64_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint64_t>(str))
+        return *value;
+    if (auto value = TryParse<float>(str))
+        return *value;
+    if (auto value = TryParse<double>(str))
+        return *value;
+    if (auto value = TryParse<long double>(str))
+        return *value;
+
+    return str;
+}
+
+
+template <typename T>
+std::optional<T> GTLibc::TryParse(const std::string &str)
+{
+    std::stringstream ss(str);
+    T value;
+    if (ss >> value)
+    {
+        if (ss.eof())
+        {
+            return value;
+        }
+    }
+    return {};
+}
 
 DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList)
 {
@@ -821,6 +1300,7 @@ DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &off
     // std::cout << "Resolved address: " << std::hex << result << std::endl;
     return result;
 }
+
 
 template <typename T>
 struct Visitor
@@ -944,7 +1424,7 @@ void GTLibc::PrintValue(const DataType &value)
 }
 
 // Create a method to convert keycodes to Key names
-std::string KeyCodeToName(int keyCode)
+std::string GTLibc::KeyCodeToName(int keyCode)
 {
     // Map the key code to a scan code.
     UINT scanCode = MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
@@ -959,477 +1439,4 @@ std::string KeyCodeToName(int keyCode)
 
     return std::string(keyName);
 }
-
-CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries = -1)
-{
-    std::ifstream ifs(cheatTableFile);
-    std::string cheatTableData((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
-
-    if (cheatTableData.empty())
-    {
-        AddLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
-        ShowError("Could not read file: " + cheatTableFile);
-        return CheatTable();
-    }
-
-    else if (IsValidCheatTable(cheatTableData))
-    {
-        AddLog("ReadCheatTable", "Successfully read file: " + cheatTableFile);
-        // Show Error if gameBaseAddress is not set and is trying to read cheat table.
-        if (gameBaseAddress == 0)
-        {
-            AddLog("ReadCheatTable", "Error: GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
-            ShowError("GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
-        }
-        else
-        {
-            g_CheatTable.SetGameBaseAddress(gameBaseAddress);
-            g_CheatTable = g_CheatTable.ParseCheatTable(cheatTableData, entries);
-            return g_CheatTable;
-        }
-    }
-
-    return CheatTable();
-}
-
-template <typename T>
-void GTLibc::AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
-                           T hotkeyValue)
-{
-    int id = g_CheatTable.cheatEntries.size();
-    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
-    g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
-}
-
-void GTLibc::ActivateCheatEntries(const std::vector<int> &cheatEntryIds)
-{
-    g_CheatTable.cheatEntries.erase(
-        std::remove_if(g_CheatTable.cheatEntries.begin(), g_CheatTable.cheatEntries.end(),
-                       [&](const auto &entry)
-                       {
-                           return std::none_of(cheatEntryIds.begin(), cheatEntryIds.end(),
-                                               [&](const auto &index)
-                                               { return g_CheatTable.cheatEntries[index] == entry; });
-                       }),
-        g_CheatTable.cheatEntries.end());
-}
-
-template <typename T>
-void PrintDataType(T type)
-{
-    auto name = typeid(type).name();
-    string cmd_str = "echo '" + string(name) + "' | c++filt -t";
-    system(cmd_str.c_str());
-    // make it return result from system() command.
-}
-
-template <typename T>
-void GTLibc::CheatAction_SetValue(DWORD address, T value)
-{
-    std::cout << "CheatAction_SetValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    WriteAddress<T>(address, value);
-}
-
-template <typename T>
-void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
-{
-    std::cout << "CheatAction_IncreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    T currentValue = ReadAddress<T>(address);
-    WriteAddress<T>(address, currentValue + value);
-}
-
-template <typename T>
-void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
-{
-    std::cout << "CheatAction_DecreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    T currentValue = ReadAddress<T>(address);
-    WriteAddress<T>(address, currentValue - value);
-}
-
-template <>
-void GTLibc::CheatAction_DecreaseValue<std::string>(DWORD address, std::string value)
-{
-    throw std::runtime_error("Decrease action is not supported for strings");
-}
-
-void GTLibc::PrintCheatTableMenu()
-{
-    int cheatIndex = 1;
-
-    // Loop through all the cheat entries.
-    std::cout << "Index. "
-              << "\t"
-              << "Description"
-              << "\t"
-              << "Action"
-              << "\t"
-              << "Hotkeys" << std::endl;
-
-    for (auto &entry : g_CheatTable.cheatEntries)
-    {
-        // Print the description.
-        std::cout << cheatIndex << ". \t" << entry->Description << "\t";
-
-        // Loop through all the hotkeys.
-        for (auto &hotkey : entry->Hotkeys)
-        {
-            std::cout << " " << std::get<0>(hotkey) << "\t";
-            std::cout << " [";
-            for (auto &key : std::get<1>(hotkey))
-            {
-                std::cout << KeyCodeToName(key) << " ";
-            }
-            std::cout << "] ";
-        }
-        std::cout << "\n"
-                  << std::endl;
-        cheatIndex++;
-    }
-}
-
-/*
-    Description: This function will execute the cheat action.
-    Params: cheatAction - The action to be executed.
-            address - The address to be executed.
-            value - The value to be executed.
-    Return: void
-*/
-
-void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, DataType &value)
-{
-    std::cout << "ExecuteCheatAction: trying to execute action: " << cheatAction << " at address: " << to_hex_string(address) << std::endl;
-    // Check if type of value is string datatype and if it is then throw error. check compile time.
-    if (std::holds_alternative<std::string>(value))
-    {
-        throw std::runtime_error("ExecuteCheatAction is not supported for strings");
-    }
-
-    if (cheatAction == CheatActions.SetValue)
-    {
-        std::visit([this, address](auto &&val)
-                   {
-                    using T = std::decay_t<decltype(val)>;
-                    CheatAction_SetValue<T>(address, val); },
-                   value);
-    }
-    else if (cheatAction == CheatActions.IncreaseValue)
-    {
-        std::visit([this, address](auto &&val)
-                   {
-                using T = std::decay_t<decltype(val)>;
-                CheatAction_IncreaseValue<T>(address, val); },
-                   value);
-    }
-    else if (cheatAction == CheatActions.DecreaseValue)
-    {
-        std::visit([this, address](auto &&val)
-                   {
-                    using T = std::decay_t<decltype(val)>;
-                    CheatAction_DecreaseValue<T>(address, val); },
-                   value);
-    }
-}
-
-template <typename T>
-void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, T &value)
-{
-    if (cheatAction == CheatActions.SetValue)
-    {
-        CheatAction_SetValue<T>(address, value);
-    }
-    else if (cheatAction == CheatActions.IncreaseValue)
-    {
-        CheatAction_IncreaseValue<T>(address, value);
-    }
-    else if (cheatAction == CheatActions.DecreaseValue)
-    {
-        CheatAction_DecreaseValue<T>(address, value);
-    }
-}
-
-// Execture the CheatTable.
-void GTLibc::ExecuteCheatTable()
-{
-    // 1. Print Cheat table menu.
-    PrintCheatTableMenu();
-
-    // 2. Resolve the address and values.
-    for (auto &entry : g_CheatTable.cheatEntries)
-    {
-        vector<DWORD> offsetsSorted = entry->Offsets;
-        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
-        DWORD address = ResolveAddressGeneric(entry->Address, offsetsSorted);
-
-        string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
-        string cheatAction = std::get<0>(entry->Hotkeys[0]);
-        DataType convertedValue = ConvertStringToDataType(cheatActionValue);
-
-        // Resolve the Hotkeys Ids.
-        entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
-
-        // Update the value in the cheat table.
-        entry->Address = address;
-        entry->Value = convertedValue;
-        entry->CheatActionStr = cheatAction;
-    }
-
-    // 3. Execute the cheat table.
-    while (true)
-    {
-        for (auto &entry : g_CheatTable.cheatEntries)
-        {
-            // std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
-
-            if (HotKeysDown(entry->HotkeyIds))
-            {
-                ExecuteCheatAction(entry->CheatActionStr, entry->Address, entry->Value);
-            }
-            // sleep for 100 ms
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        // sleep for 100 ms
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-}
-
-void GTLibc::PrintCheatTable()
-{
-    for (auto &entry : g_CheatTable.cheatEntries)
-    {
-        std::cout << "Description: " << entry->Description << std::endl;
-        std::cout << "ID: " << entry->Id << std::endl;
-        std::cout << "VariableType: " << entry->VariableType << std::endl;
-        std::cout << "Address: " << entry->Address << std::endl;
-        std::cout << "Offsets: ";
-        for (auto &offset : entry->Offsets)
-        {
-            std::cout << offset << " ";
-        }
-        std::cout << std::endl;
-        std::cout << "Hotkeys: " << std::endl;
-        for (auto &hotkey : entry->Hotkeys)
-        {
-            std::cout << "  Action: " << std::get<0>(hotkey) << std::endl;
-            std::cout << "  Keys: [";
-            for (auto &key : std::get<1>(hotkey))
-            {
-                std::cout << KeyCodeToName(key) << " ";
-            }
-            std::cout << "]" << std::endl;
-            std::cout << "  Value: " << std::get<2>(hotkey) << std::endl;
-            std::cout << "  ID: " << std::get<3>(hotkey) << std::endl;
-        }
-        std::cout << std::endl;
-    }
-}
-
-// Check if cheat table is valid XML check for tags.
-bool GTLibc::IsValidCheatTable(const std::string &xmlData)
-{
-    std::string_view xmlDataView = xmlData;
-    if (xmlDataView.find("<CheatEntries>") == std::string::npos)
-    {
-        return false;
-    }
-    if (xmlDataView.find("</CheatEntries>") == std::string::npos)
-    {
-        return false;
-    }
-    return true;
-}
-
-/*
-    Read the generic table and print the results.
-*/
-void GTLibc::ReadCheatTableEntries()
-{
-    for (auto &entry : g_CheatTable.cheatEntries)
-    {
-        const DWORD address = entry->Address;
-        const vector<DWORD> offsets = entry->Offsets;
-
-        vector<DWORD> offsetsSorted = offsets;
-        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
-
-        if (offsets.size() >= 1)
-        {
-            std::cout << "Description: " << entry->Description;
-            std::cout << " Address: " << to_hex_string(address);
-            std::cout << " Offsets: ";
-            for (auto &offset : offsetsSorted)
-            {
-                std::cout << to_hex_string(offset) << ",";
-            }
-
-            auto result = ReadAddressGeneric(entry->VariableType, address, offsetsSorted);
-            PrintValue(result);
-        }
-
-        if (offsets.size() == 0 && address != 0)
-        {
-            std::cout << "Description: " << entry->Description << " ";
-            auto result = ReadAddressGeneric(entry->VariableType, address);
-            PrintValue(result);
-        }
-    }
-}
-
-void GTLibc::AddLog(const std::string &methodName, const std::string &message)
-{
-    if (!enableLogs)
-        return;
-
-    auto now = std::chrono::system_clock::now();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&in_time_t), "%T") << '.' << std::setfill('0') << std::setw(3) << ms.count();
-    ss << " [" << methodName << "] " << message;
-
-    std::ofstream ofs(logFile, std::ios_base::out | std::ios_base::app);
-    ofs << ss.str() << std::endl;
-    ofs.close();
-}
-
-void GTLibc::EnableLogs(bool status)
-{
-    AddLog("EnableLogs", "Trying to enable logs");
-    enableLogs = status;
-}
-
-void GTLibc::ShowError(const std::string &errorMessage)
-{
-    MessageBox(NULL, errorMessage.c_str(), "ERROR!", MB_ICONERROR);
-}
-
-void GTLibc::ShowWarning(const std::string &warningMessage)
-{
-    MessageBox(NULL, warningMessage.c_str(), "WARNING!", MB_ICONWARNING);
-}
-
-void GTLibc::ShowInfo(const std::string &infoMessage)
-{
-    MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
-}
-
-bool GTLibc::CheckGameTrainerArch()
-{
-    SYSTEM_INFO siCurrent = {};
-    SYSTEM_INFO siRemote = {};
-    GetNativeSystemInfo(&siCurrent);
-
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetProcessId(this->gameHandle));
-    if (hSnapshot != INVALID_HANDLE_VALUE)
-    {
-        MODULEENTRY32 me = {};
-        me.dwSize = sizeof(MODULEENTRY32);
-        if (Module32First(hSnapshot, &me))
-        {
-            siRemote.wProcessorArchitecture = (me.modBaseAddr >= (LPBYTE)0x80000000) ? PROCESSOR_ARCHITECTURE_AMD64 : PROCESSOR_ARCHITECTURE_INTEL;
-        }
-        CloseHandle(hSnapshot);
-    }
-
-    if (siCurrent.wProcessorArchitecture != siRemote.wProcessorArchitecture)
-    {
-        if (siCurrent.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL && siRemote.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-        {
-            AddLog("CheckGameTrainerArch", "The Trainer is 32-bit and the game is 64-bit.");
-            ShowError("The Trainer is 32-bit and the game is 64-bit.");
-            std::exit(EXIT_FAILURE);
-        }
-        else
-        {
-            AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
-            return false;
-        }
-    }
-    else
-    {
-        AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture)+ " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
-        return true;
-    }
-}
-
-// Helper function that converts the wProcessorArchitecture value to a string representation. 
-std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture) {
-    switch (wProcessorArchitecture) {
-        case PROCESSOR_ARCHITECTURE_INTEL:
-            return "x86";
-        case PROCESSOR_ARCHITECTURE_ARM:
-            return "ARM";
-        case PROCESSOR_ARCHITECTURE_IA64:
-            return "IA-64";
-        case PROCESSOR_ARCHITECTURE_AMD64:
-            return "x64";
-        case PROCESSOR_ARCHITECTURE_ARM64:
-            return "ARM64";
-        case PROCESSOR_ARCHITECTURE_ALPHA64:
-            return "Alpha64";
-        case PROCESSOR_ARCHITECTURE_SHX:
-            return "SHX";
-        case PROCESSOR_ARCHITECTURE_MIPS:
-            return "MIPS";
-        case PROCESSOR_ARCHITECTURE_PPC:
-            return "PPC";
-        case PROCESSOR_ARCHITECTURE_UNKNOWN:
-        default:
-            return "unknown";
-    }
-}
-
-// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
-string GTLibc::GetHotKeysName(const vector<int> &keys)
-{
-    string hotkeysName = "";
-    for (auto &key : keys)
-    {
-        hotkeysName += KeyCodeToName(key) + " ";
-    }
-    return hotkeysName;
-}
-
-DataType GTLibc::ConvertStringToDataType(const std::string &str)
-{
-    if (auto value = TryParse<std::int16_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint16_t>(str))
-        return *value;
-    if (auto value = TryParse<std::int32_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint32_t>(str))
-        return *value;
-    if (auto value = TryParse<std::int64_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint64_t>(str))
-        return *value;
-    if (auto value = TryParse<float>(str))
-        return *value;
-    if (auto value = TryParse<double>(str))
-        return *value;
-    if (auto value = TryParse<long double>(str))
-        return *value;
-
-    return str;
-}
-
-
-template <typename T>
-std::optional<T> GTLibc::TryParse(const std::string &str)
-{
-    std::stringstream ss(str);
-    T value;
-    if (ss >> value)
-    {
-        if (ss.eof())
-        {
-            return value;
-        }
-    }
-    return {};
-}
+#endif

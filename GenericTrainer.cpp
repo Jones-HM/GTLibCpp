@@ -1,5 +1,11 @@
 // including the header files and GTLIbc class
-#include "GTLibc.cpp"
+
+// Define this macro to use the CE parser.
+//#define GT_USE_CE_PARSER
+
+#include "GTLibc.h"
+
+using namespace GTLIBC;
 
 // define the base address of the game
 int GAME_BASE_ADDRESS = 0x00400000;
@@ -15,12 +21,12 @@ int main()
     std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << GAME_BASE_ADDRESS << 
     " Handle: " << gtlibc.GetGameHandle() << std::endl;
 
-
     // Selecting the cheat table file.
-    string cheatTableFile = "CheatTable/igi.ct";
+    std::string cheatTableFile = "CheatTable/igi.ct";
 
     // Read the cheat table file
-    //gtlibc.ReadCheatTable(cheatTableFile);
+    //gtlibc.ReadCheatTable(cheatTableFile,5);
+    //gtlibc.PrintCheatTable();
 
     // Activate the cheat entries.
     //std::vector<int> cheatIds = {0, 1, 2, 7, 8, 9};

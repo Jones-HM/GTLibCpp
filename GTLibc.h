@@ -31,7 +31,9 @@
 #include <psapi.h>
 #endif
 
+#ifdef GT_USE_CE_PARSER
 #include "CEParser.h"
+#endif
 
 /*Re-Defining standard constants*/
 #if !defined(FILE_NAME) && !defined(LINE_NO) && !defined(FUNC_NAME)
@@ -112,12 +114,13 @@ namespace GTLIBC
         void EnableLogs(bool status);
 
         // Cheat Engine variables.
-        CheatTable ReadCheatTable(const std::string &filename, int entries);
+        #ifdef GT_USE_CE_PARSER
+        CheatTable ReadCheatTable(const std::string &cheatTableFile, int entries=-1);
         void PrintCheatTable();
         void ReadCheatTableEntries();
         template <typename T>
-        void AddCheatEntry(const string &description, const string &dataType, const DWORD address,
-                           const vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
+        void AddCheatEntry(const std::string &description, const std::string &dataType, const DWORD address,
+                           const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
                            T hotkeyValue);
         void ActivateCheatEntries(const std::vector<int> &cheatEntryIndex);
         void ExecuteCheatTable();
@@ -130,14 +133,18 @@ namespace GTLIBC
 
         template <typename T>
         void CheatAction_DecreaseValue(DWORD address, T value);
+        #endif 
 
     private:
         void AddLog(const std::string &methodName, const std::string &logMessage);
         void ShowError(const std::string &errorMessage);
         void ShowWarning(const std::string &warningMessage);
         void ShowInfo(const std::string &infoMessage);
+        template <typename T>
+        void PrintDataType(T type);
 
         // Cheat Engine variables.
+        #ifdef GT_USE_CE_PARSER
         void PrintValue(const DataType &value);
         template <typename T>
         T ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
@@ -146,15 +153,17 @@ namespace GTLIBC
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList);
         bool IsValidCheatTable(const std::string &xmlData);
         void PrintCheatTableMenu();
-        void ExecuteCheatAction(string &cheatAction, const DWORD &address, DataType &value);
+        void ExecuteCheatAction(std::string &cheatAction, const DWORD &address, DataType &value);
         template <typename T>
-        void ExecuteCheatAction(string &cheatAction, const DWORD &address, T &value);
+        void ExecuteCheatAction(std::string &cheatAction, const DWORD &address, T &value);
+        #endif
 
         // Utility functions
         template <typename T>
         std::optional<T> TryParse(const std::string &str);
         DataType ConvertStringToDataType(const std::string &str);
-        string GetHotKeysName(const vector<int> &keys);
+        std::string KeyCodeToName(int keyCode);
+        std::string GetHotKeysName(const std::vector<int> &keys);
         bool CheckGameTrainerArch();
         std::string GetArchitectureString(WORD wProcessorArchitecture);
 
@@ -167,7 +176,9 @@ namespace GTLIBC
         std::string logFile;
     };
     inline GTLibc *g_GTLibc{};
+    #ifdef GT_USE_CE_PARSER
     inline static CheatTable g_CheatTable;
+    #endif
 }
 
 #endif
