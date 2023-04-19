@@ -17,6 +17,9 @@
 #include <variant>
 #include <thread>
 #include <optional>
+#include <type_traits>
+#include <array>
+#include <filesystem>
 
 /*Defining WIN32 Constants*/
 #define WINVER 0x0500 // Sets the minimum required platform to Windows 2000.
@@ -31,6 +34,7 @@
 #include <psapi.h>
 #endif
 
+// Including the CE Parser library.
 #ifdef GT_USE_CE_PARSER
 #include "CEParser.h"
 #endif
@@ -140,8 +144,6 @@ namespace GTLIBC
         void ShowError(const std::string &errorMessage);
         void ShowWarning(const std::string &warningMessage);
         void ShowInfo(const std::string &infoMessage);
-        template <typename T>
-        void PrintDataType(T type);
 
         // Cheat Engine variables.
         #ifdef GT_USE_CE_PARSER
@@ -166,6 +168,11 @@ namespace GTLIBC
         std::string GetHotKeysName(const std::vector<int> &keys);
         bool CheckGameTrainerArch();
         std::string GetArchitectureString(WORD wProcessorArchitecture);
+        std::string ShellExec(const std::string &cmdArgs, bool runAsAdmin = false, bool waitForExit = true, const std::string &shell = "cmd");
+        template <typename T>
+        std::string ValueToString(const T& value);
+        template <typename T>
+        std::string GetDataTypeInfo(T type);
 
         std::string gameName;
         HWND gameWindow;

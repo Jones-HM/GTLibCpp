@@ -1,4 +1,6 @@
 #include "GTLibc.h"
+// Defining CE_PARSER.
+#define GT_USE_CE_PARSER
 using namespace GTLIBC;
 
 GTLibc::GTLibc()
@@ -833,7 +835,7 @@ void GTLibc::AddCheatEntry(const std::string &description, const std::string &da
                            T hotkeyValue)
 {
     int id = g_CheatTable.cheatEntries.size();
-    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, to_string(hotkeyValue), 0)};
+    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, std::to_string(hotkeyValue), 0)};
     g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
 }
 
@@ -850,31 +852,53 @@ void GTLibc::ActivateCheatEntries(const std::vector<int> &cheatEntryIds)
         g_CheatTable.cheatEntries.end());
 }
 
-
 template <typename T>
 void GTLibc::CheatAction_SetValue(DWORD address, T value)
 {
-    std::cout << "CheatAction_SetValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    WriteAddress<T>(address, value);
+    AddLog("CheatAction_SetValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    // Check if value is a string then call WriteString method.
+    if constexpr (std::is_same_v<T, std::string>)
+    {
+        WriteString(address, value);
+    }
+    else
+    {
+        WriteAddress<T>(address, value);
+    }
 }
 
 template <typename T>
 void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
 {
-    std::cout << "CheatAction_IncreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    T currentValue = ReadAddress<T>(address);
-    WriteAddress<T>(address, currentValue + value);
+    AddLog("CheatAction_IncreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    // Check if value is a string then call WriteString method and ReadString method.
+    if constexpr (std::is_same_v<T, std::string>)
+    {
+        std::string currentValue = ReadString(address, value.length());
+        WriteString(address, currentValue + value);
+    }
+    else
+    {
+        T currentValue = ReadAddress<T>(address);
+        WriteAddress<T>(address, currentValue + value);
+    }
 }
 
 template <typename T>
 void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
 {
-    std::cout << "CheatAction_DecreaseValue: trying to write value: " << value << " at address: " << to_hex_string(address) << std::endl;
-    PrintDataType(value);
-    T currentValue = ReadAddress<T>(address);
-    WriteAddress<T>(address, currentValue - value);
+    AddLog("CheatAction_DecreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    // Check if value is a string then call WriteString method and ReadString method.
+    if constexpr (std::is_same_v<T, std::string>)
+    {
+        std::string currentValue = ReadString(address, value.length());
+        WriteString(address, currentValue - value);
+    }
+    else
+    {
+        T currentValue = ReadAddress<T>(address);
+        WriteAddress<T>(address, currentValue - value);
+    }
 }
 
 template <>
@@ -928,13 +952,8 @@ void GTLibc::PrintCheatTableMenu()
 
 void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, DataType &value)
 {
-    std::cout << "ExecuteCheatAction: trying to execute action: " << cheatAction << " at address: " << to_hex_string(address) << std::endl;
+    AddLog("ExecuteCheatAction", "trying to execute action: " + cheatAction + " at address: " + to_hex_string(address));
     // Check if type of value is string datatype and if it is then throw error. check compile time.
-    if (std::holds_alternative<std::string>(value))
-    {
-        throw std::runtime_error("ExecuteCheatAction is not supported for strings");
-    }
-
     if (cheatAction == CheatActions.SetValue)
     {
         std::visit([this, address](auto &&val)
@@ -978,7 +997,7 @@ void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, 
     }
 }
 
-// Execture the CheatTable.
+// Execute the cheat table and generate a generic trainer.
 void GTLibc::ExecuteCheatTable()
 {
     // 1. Print Cheat table menu.
@@ -987,20 +1006,22 @@ void GTLibc::ExecuteCheatTable()
     // 2. Resolve the address and values.
     for (auto &entry : g_CheatTable.cheatEntries)
     {
+        // Resolving the address with offsets.
         std::vector<DWORD> offsetsSorted = entry->Offsets;
         std::reverse(offsetsSorted.begin(), offsetsSorted.end());
         DWORD address = ResolveAddressGeneric(entry->Address, offsetsSorted);
 
+        // Resolving the value.
         std::string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
         std::string cheatAction = std::get<0>(entry->Hotkeys[0]);
-        DataType convertedValue = ConvertStringToDataType(cheatActionValue);
+        DataType cheatValue = ConvertStringToDataType(cheatActionValue);
 
-        // Resolve the Hotkeys Ids.
+        // Resolving the Hotkeys Ids.
         entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
 
         // Update the value in the cheat table.
         entry->Address = address;
-        entry->Value = convertedValue;
+        entry->Value = cheatValue;
         entry->CheatActionStr = cheatAction;
     }
 
@@ -1145,15 +1166,69 @@ void GTLibc::ShowInfo(const std::string &infoMessage)
     MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
 }
 
+// Create method to Execute system commands and return the output.
+std::string GTLibc::ShellExec(const std::string &cmdArgs, bool runAsAdmin, bool waitForExit, const std::string &shell)
+{
+    std::string command;
+    std::array<char, 128> buffer;
+    std::string result;
+
+#if defined(__linux__)
+    if (runAsAdmin)
+    {
+        command = "sudo " + shell + " -c \"" + cmdArgs + "\"";
+    }
+    else
+    {
+        command = shell + " -c \"" + cmdArgs + "\"";
+    }
+#elif defined(_WIN32) || defined(_WIN64)
+    command = shell + " /c " + cmdArgs;
+    if (runAsAdmin)
+    {
+        SHELLEXECUTEINFO shExInfo = {0};
+        shExInfo.cbSize = sizeof(shExInfo);
+        shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+        shExInfo.hwnd = 0;
+        shExInfo.lpVerb = ("runas");
+        shExInfo.lpFile = (shell.c_str());
+        shExInfo.lpParameters = (cmdArgs.c_str());
+        shExInfo.lpDirectory = 0;
+        shExInfo.nShow = SW_HIDE;
+        shExInfo.hInstApp = 0;
+        if (!ShellExecuteEx(&shExInfo))
+        {
+            throw std::system_error(GetLastError(), std::system_category(), "Error executing command as admin.");
+        }
+        if (waitForExit)
+        {
+            WaitForSingleObject(shExInfo.hProcess, INFINITE);
+        }
+        CloseHandle(shExInfo.hProcess);
+        return "";
+    }
+#endif
+
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe)
+    {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        result += buffer.data();
+    }
+    return result;
+}
+
 template <typename T>
-void GTLibc::PrintDataType(T type)
+std::string GTLibc::GetDataTypeInfo(T type)
 {
     auto name = typeid(type).name();
     std::string cmd_str = "echo '" + std::string(name) + "' | c++filt -t";
-    system(cmd_str.c_str());
-    // make it return result from system() command.
+    std::string result = ShellExec(cmd_str);
+    return result;
 }
-
 
 bool GTLibc::CheckGameTrainerArch()
 {
@@ -1183,41 +1258,43 @@ bool GTLibc::CheckGameTrainerArch()
         }
         else
         {
-            AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+            AddLog("CheckGameTrainerArch", "Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
             return false;
         }
     }
     else
     {
-        AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture)+ " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+        AddLog("CheckGameTrainerArch", "Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
         return true;
     }
 }
 
-// Helper function that converts the wProcessorArchitecture value to a string representation. 
-std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture) {
-    switch (wProcessorArchitecture) {
-        case PROCESSOR_ARCHITECTURE_INTEL:
-            return "x86";
-        case PROCESSOR_ARCHITECTURE_ARM:
-            return "ARM";
-        case PROCESSOR_ARCHITECTURE_IA64:
-            return "IA-64";
-        case PROCESSOR_ARCHITECTURE_AMD64:
-            return "x64";
-        case PROCESSOR_ARCHITECTURE_ARM64:
-            return "ARM64";
-        case PROCESSOR_ARCHITECTURE_ALPHA64:
-            return "Alpha64";
-        case PROCESSOR_ARCHITECTURE_SHX:
-            return "SHX";
-        case PROCESSOR_ARCHITECTURE_MIPS:
-            return "MIPS";
-        case PROCESSOR_ARCHITECTURE_PPC:
-            return "PPC";
-        case PROCESSOR_ARCHITECTURE_UNKNOWN:
-        default:
-            return "unknown";
+// Helper function that converts the wProcessorArchitecture value to a string representation.
+std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture)
+{
+    switch (wProcessorArchitecture)
+    {
+    case PROCESSOR_ARCHITECTURE_INTEL:
+        return "x86";
+    case PROCESSOR_ARCHITECTURE_ARM:
+        return "ARM";
+    case PROCESSOR_ARCHITECTURE_IA64:
+        return "IA-64";
+    case PROCESSOR_ARCHITECTURE_AMD64:
+        return "x64";
+    case PROCESSOR_ARCHITECTURE_ARM64:
+        return "ARM64";
+    case PROCESSOR_ARCHITECTURE_ALPHA64:
+        return "Alpha64";
+    case PROCESSOR_ARCHITECTURE_SHX:
+        return "SHX";
+    case PROCESSOR_ARCHITECTURE_MIPS:
+        return "MIPS";
+    case PROCESSOR_ARCHITECTURE_PPC:
+        return "PPC";
+    case PROCESSOR_ARCHITECTURE_UNKNOWN:
+    default:
+        return "unknown";
     }
 }
 
@@ -1257,7 +1334,6 @@ DataType GTLibc::ConvertStringToDataType(const std::string &str)
     return str;
 }
 
-
 template <typename T>
 std::optional<T> GTLibc::TryParse(const std::string &str)
 {
@@ -1275,7 +1351,7 @@ std::optional<T> GTLibc::TryParse(const std::string &str)
 
 DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList)
 {
-    // std::cout << "Init parameters: " << std::hex << address << " " << to_hex_string(gameBaseAddress) << std::endl;
+    AddLog("ResolveAddressGeneric", "Init parameters: " + to_hex_string(address) + " " + to_hex_string(gameBaseAddress));
 
     if (offsetsList.size() == 0)
     {
@@ -1283,9 +1359,9 @@ DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &off
     }
 
     DWORD staticAddress = address - gameBaseAddress;
-    // std::cout << "Static address: " << std::hex << staticAddress << std::endl;
+    AddLog("ResolveAddressGeneric", "Static address: " + to_hex_string(staticAddress));
     DWORD result = ReadPointerOffset<DWORD>(gameBaseAddress, staticAddress);
-    // std::cout << "Startred resolving address: " << std::hex << result << std::endl;
+    AddLog("ResolveAddressGeneric", "Startred resolving address: " + to_hex_string(result));
 
     if (offsetsList.size() > 1)
     {
@@ -1297,10 +1373,9 @@ DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &off
 
     // Add the last offset to the result
     result += offsetsList.back();
-    // std::cout << "Resolved address: " << std::hex << result << std::endl;
+    AddLog("ResolveAddressGeneric", "Resolved address: " + to_hex_string(result));
     return result;
 }
-
 
 template <typename T>
 struct Visitor
@@ -1380,39 +1455,15 @@ T GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const s
     return std::visit(Visitor<T>{}, data);
 }
 
-DataType GTLibc::ReadAddressGenericWrapper(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList)
-{
-    if (dataType == CheatTypes.Byte)
-    {
-        return ReadAddressGeneric<BYTE>(dataType, address, offsetsList);
-    }
-    else if (dataType == CheatTypes.Short)
-    {
-        return ReadAddressGeneric<int16_t>(dataType, address, offsetsList);
-    }
-    else if (dataType == CheatTypes.Integer)
-    {
-        return ReadAddressGeneric<int32_t>(dataType, address, offsetsList);
-    }
-    else if (dataType == CheatTypes.Long)
-    {
-        return ReadAddressGeneric<int64_t>(dataType, address, offsetsList);
-    }
-    else if (dataType == CheatTypes.Float)
-    {
-        return ReadAddressGeneric<float>(dataType, address, offsetsList);
-    }
-    else if (dataType == CheatTypes.Double)
-    {
-        return ReadAddressGeneric<double>(dataType, address, offsetsList);
-    }
-    // else if (dataType == CheatTypes.String)
-    // {
-    //     return ReadAddressGeneric<std::string>(dataType, address, offsetsList);
-    // }
-    else
-    {
-        throw std::runtime_error("Invalid data type specified");
+template <typename T>
+std::string GTLibc::ValueToString(const T& value) {
+    if constexpr (std::is_arithmetic_v<T>) {
+        return std::to_string(value);
+    } else if constexpr (std::is_same_v<T, std::string>) {
+        return value;
+    } else {
+        // Handle other types if necessary, or throw an exception if unsupported type
+        throw std::invalid_argument("Unsupported data type for value_to_string.");
     }
 }
 
