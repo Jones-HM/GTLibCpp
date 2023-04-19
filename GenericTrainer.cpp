@@ -1,22 +1,20 @@
 // including the header files and GTLIbc class
 #include "GTLibc.cpp"
-#include <windows.h>
 
 // define the base address of the game
-DWORD GAME_BASE_ADDRESS = 0x00400000;
+int GAME_BASE_ADDRESS = 0x00400000;
 
 int main()
 {
     // Finding the game process
     std::string gameName = "igi";
     GTLibc gtlibc(true);
-    //gtlibc.FindGameProcess(gameName);
-    HWND hwnd = gtlibc.FindGameWindow("IGI");
-    DWORD pid = gtlibc.GetProcessID4mHWND(hwnd);
-    HANDLE hProcess = gtlibc.GetGameHandle4mHWND(hwnd);
-    std::cout << "PID: " << to_hex_string(pid) << " hProcess: " << to_hex_string(hProcess) << std::endl;
+    gtlibc.FindGameProcess(gameName);
+    GAME_BASE_ADDRESS = gtlibc.GetGameBaseAddress();
 
-    //GAME_BASE_ADDRESS = gtlibc.GetGameBaseAddress();
+    std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << GAME_BASE_ADDRESS << 
+    " Handle: " << gtlibc.GetGameHandle() << std::endl;
+
 
     // Selecting the cheat table file.
     string cheatTableFile = "CheatTable/igi.ct";

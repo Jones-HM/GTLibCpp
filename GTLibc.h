@@ -2,6 +2,7 @@
 #ifndef GTLIBC_H
 #define GTLIBC_H
 
+// Including the standard libraries
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -16,9 +17,28 @@
 #include <variant>
 #include <thread>
 #include <optional>
+
+/*Defining WIN32 Constants*/
+#define WINVER 0x0500 // Sets the minimum required platform to Windows 2000.
+#define _WIN32_WINNT 0x0501 // Sets the minimum required platform to Windows XP.
+
+/*Including WIN32 libraries*/
 #include <windows.h>
 #include <tlhelp32.h>
+
+/*Including Conditional Process library*/
+#ifdef GT_USE_PROC_MODULES
+#include <psapi.h>
+#endif
+
 #include "CEParser.h"
+
+/*Re-Defining standard constants*/
+#if !defined(FILE_NAME) && !defined(LINE_NO) && !defined(FUNC_NAME)
+#define FILE_NAME __FILE__
+#define LINE_NO __LINE__
+#define FUNC_NAME __FUNCTION__
+#endif
 
 #define to_hex_string(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << std::uppercase << std::hex << hex_val)).str()
 using DataType = std::variant<std::int16_t, std::uint16_t, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t, float, double, long double, std::string>;
@@ -72,7 +92,7 @@ namespace GTLIBC
         bool WritePointerOffsets(DWORD address, const std::vector<DWORD> &offsetsList, const T &value);
 
         // Reading and writing strings.
-        std::string ReadString(DWORD address, SIZE_T size);
+        std::string ReadString(DWORD address, size_t size);
         bool WriteString(DWORD address, const std::string &str);
 
         // Detecting Hotkeys.
@@ -88,7 +108,6 @@ namespace GTLIBC
         DWORD GetGameBaseAddress();
 
         bool SuspendResumeProcess(bool suspend);
-        bool Is64bitGame();
 
         void EnableLogs(bool status);
 
@@ -136,6 +155,8 @@ namespace GTLIBC
         std::optional<T> TryParse(const std::string &str);
         DataType ConvertStringToDataType(const std::string &str);
         string GetHotKeysName(const vector<int> &keys);
+        bool CheckGameTrainerArch();
+        std::string GetArchitectureString(WORD wProcessorArchitecture);
 
         std::string gameName;
         HWND gameWindow;

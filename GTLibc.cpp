@@ -104,6 +104,8 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
                 AddLog("FindGameProcess", "Game process handle: " + to_hex_string(gameHandle));
                 AddLog("FindGameProcess", "Game window handle: " + to_hex_string(gameWindow));
 
+                // Check game trainer architecture.
+                CheckGameTrainerArch();
                 return true;
             }
         } while (Process32Next(hSnapshot, &pe));
@@ -718,11 +720,13 @@ DWORD GTLibc::GetProcessID4mHWND(HWND hwnd)
     AddLog("GetProcessID4mHWND", "Trying to get process ID");
     DWORD processId;
 
-    if (!GetWindowThreadProcessId(hwnd, &processId)){
+    if (!GetWindowThreadProcessId(hwnd, &processId))
+    {
         AddLog("GetProcessID4mHWND", "Error: GetWindowThreadProcessId failed");
         return 0;
     }
-    else {
+    else
+    {
         AddLog("GetProcessID4mHWND", "Return value: " + to_hex_string(processId));
         this->processId = processId;
     }
@@ -787,6 +791,8 @@ bool GTLibc::IsKeyToggled(int keycode)
     }
     return false;
 }
+
+
 
 DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList)
 {
@@ -1145,56 +1151,6 @@ void GTLibc::ExecuteCheatAction(string &cheatAction, const DWORD &address, T &va
     }
 }
 
-template <typename T>
-std::optional<T> GTLibc::TryParse(const std::string &str)
-{
-    std::stringstream ss(str);
-    T value;
-    if (ss >> value)
-    {
-        if (ss.eof())
-        {
-            return value;
-        }
-    }
-    return {};
-}
-
-DataType GTLibc::ConvertStringToDataType(const std::string &str)
-{
-    if (auto value = TryParse<std::int16_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint16_t>(str))
-        return *value;
-    if (auto value = TryParse<std::int32_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint32_t>(str))
-        return *value;
-    if (auto value = TryParse<std::int64_t>(str))
-        return *value;
-    if (auto value = TryParse<std::uint64_t>(str))
-        return *value;
-    if (auto value = TryParse<float>(str))
-        return *value;
-    if (auto value = TryParse<double>(str))
-        return *value;
-    if (auto value = TryParse<long double>(str))
-        return *value;
-
-    return str;
-}
-
-// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
-string GTLibc::GetHotKeysName(const vector<int> &keys)
-{
-    string hotkeysName = "";
-    for (auto &key : keys)
-    {
-        hotkeysName += KeyCodeToName(key) + " ";
-    }
-    return hotkeysName;
-}
-
 // Execture the CheatTable.
 void GTLibc::ExecuteCheatTable()
 {
@@ -1359,4 +1315,121 @@ void GTLibc::ShowWarning(const std::string &warningMessage)
 void GTLibc::ShowInfo(const std::string &infoMessage)
 {
     MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
+}
+
+bool GTLibc::CheckGameTrainerArch()
+{
+    SYSTEM_INFO siCurrent = {};
+    SYSTEM_INFO siRemote = {};
+    GetNativeSystemInfo(&siCurrent);
+
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetProcessId(this->gameHandle));
+    if (hSnapshot != INVALID_HANDLE_VALUE)
+    {
+        MODULEENTRY32 me = {};
+        me.dwSize = sizeof(MODULEENTRY32);
+        if (Module32First(hSnapshot, &me))
+        {
+            siRemote.wProcessorArchitecture = (me.modBaseAddr >= (LPBYTE)0x80000000) ? PROCESSOR_ARCHITECTURE_AMD64 : PROCESSOR_ARCHITECTURE_INTEL;
+        }
+        CloseHandle(hSnapshot);
+    }
+
+    if (siCurrent.wProcessorArchitecture != siRemote.wProcessorArchitecture)
+    {
+        if (siCurrent.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL && siRemote.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+        {
+            AddLog("CheckGameTrainerArch", "The Trainer is 32-bit and the game is 64-bit.");
+            ShowError("The Trainer is 32-bit and the game is 64-bit.");
+            std::exit(EXIT_FAILURE);
+        }
+        else
+        {
+            AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture) + " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+            return false;
+        }
+    }
+    else
+    {
+        AddLog("CheckGameTrainerArch","Trainer has architecture value of " + GetArchitectureString(siCurrent.wProcessorArchitecture)+ " and game has architecture value of " + GetArchitectureString(siRemote.wProcessorArchitecture));
+        return true;
+    }
+}
+
+// Helper function that converts the wProcessorArchitecture value to a string representation. 
+std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture) {
+    switch (wProcessorArchitecture) {
+        case PROCESSOR_ARCHITECTURE_INTEL:
+            return "x86";
+        case PROCESSOR_ARCHITECTURE_ARM:
+            return "ARM";
+        case PROCESSOR_ARCHITECTURE_IA64:
+            return "IA-64";
+        case PROCESSOR_ARCHITECTURE_AMD64:
+            return "x64";
+        case PROCESSOR_ARCHITECTURE_ARM64:
+            return "ARM64";
+        case PROCESSOR_ARCHITECTURE_ALPHA64:
+            return "Alpha64";
+        case PROCESSOR_ARCHITECTURE_SHX:
+            return "SHX";
+        case PROCESSOR_ARCHITECTURE_MIPS:
+            return "MIPS";
+        case PROCESSOR_ARCHITECTURE_PPC:
+            return "PPC";
+        case PROCESSOR_ARCHITECTURE_UNKNOWN:
+        default:
+            return "unknown";
+    }
+}
+
+// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
+string GTLibc::GetHotKeysName(const vector<int> &keys)
+{
+    string hotkeysName = "";
+    for (auto &key : keys)
+    {
+        hotkeysName += KeyCodeToName(key) + " ";
+    }
+    return hotkeysName;
+}
+
+DataType GTLibc::ConvertStringToDataType(const std::string &str)
+{
+    if (auto value = TryParse<std::int16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint16_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint32_t>(str))
+        return *value;
+    if (auto value = TryParse<std::int64_t>(str))
+        return *value;
+    if (auto value = TryParse<std::uint64_t>(str))
+        return *value;
+    if (auto value = TryParse<float>(str))
+        return *value;
+    if (auto value = TryParse<double>(str))
+        return *value;
+    if (auto value = TryParse<long double>(str))
+        return *value;
+
+    return str;
+}
+
+
+template <typename T>
+std::optional<T> GTLibc::TryParse(const std::string &str)
+{
+    std::stringstream ss(str);
+    T value;
+    if (ss >> value)
+    {
+        if (ss.eof())
+        {
+            return value;
+        }
+    }
+    return {};
 }
