@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<CheatTable CheatEngineTableVersion="42">
+<CheatTable CheatEngineTableVersion="45">
   <CheatEntries>
     <CheatEntry>
       <ID>4</ID>
@@ -24,17 +24,28 @@
     </CheatEntry>
     <CheatEntry>
       <ID>9</ID>
-      <Description>"Health Pointer"</Description>
+      <Description>"Health"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
       <Offsets>
         <Offset>EC</Offset>
       </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Set Value</Action>
+          <Keys>
+            <Key>17</Key>
+            <Key>72</Key>
+          </Keys>
+          <Value>100</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>10</ID>
-      <Description>"Riffle Ammo Pointer"</Description>
+      <Description>"Riffle Ammo"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -44,7 +55,7 @@
     </CheatEntry>
     <CheatEntry>
       <ID>25</ID>
-      <Description>"CurrentWeaponAmmo"</Description>
+      <Description>"CurrentWeapon Ammo"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -53,36 +64,80 @@
         <Offset>14</Offset>
         <Offset>368</Offset>
       </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>17</Key>
+            <Key>65</Key>
+          </Keys>
+          <Value>10</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>12</ID>
-      <Description>"ZCord Pointer"</Description>
+      <Description>"ZCord"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
       <Offsets>
         <Offset>30</Offset>
       </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>17</Key>
+            <Key>90</Key>
+          </Keys>
+          <Value>10</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>13</ID>
-      <Description>"XCord Pointer"</Description>
+      <Description>"XCord"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
       <Offsets>
         <Offset>2C</Offset>
       </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>17</Key>
+            <Key>88</Key>
+          </Keys>
+          <Value>10</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>23</ID>
-      <Description>"YCord Pointer"</Description>
+      <Description>"YCord"</Description>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+195404</Address>
       <Offsets>
         <Offset>28</Offset>
       </Offsets>
+      <Hotkeys>
+        <Hotkey>
+          <Action>Increase Value</Action>
+          <Keys>
+            <Key>17</Key>
+            <Key>89</Key>
+          </Keys>
+          <Value>10</Value>
+          <ID>0</ID>
+        </Hotkey>
+      </Hotkeys>
     </CheatEntry>
     <CheatEntry>
       <ID>14</ID>
@@ -129,4 +184,5 @@
       </Offsets>
     </CheatEntry>
   </CheatEntries>
+  <UserdefinedSymbols/>
 </CheatTable>

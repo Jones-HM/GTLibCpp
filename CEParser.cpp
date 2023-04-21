@@ -58,7 +58,7 @@ HOTKEYS CheatTable::ParseHotkeys(const string &hotkeys)
 {
     HOTKEYS result;
     std::smatch matches;
-    std::regex hotkeyRegex("<Hotkey>([\\s\\S]*?)<Action>([\\s\\S]*?)</Action>([\\s\\S]*?)<Keys>([\\s\\S]*?)</Keys>([\\s\\S]*?)<Value>([\\s\\S]*?)</Value>([\\s\\S]*?)<ID>([\\s\\S]*?)</ID>([\\s\\S]*?)</Hotkey>");
+    std::regex hotkeyRegex("<Hotkey>([\\s\\S]*?)<Action>([\\s\\S]*?)</Action>([\\s\\S]*?)<Keys>([\\s\\S]*?)</Keys>(?:[\\s\\S]*?<Value>([\\s\\S]*?)</Value>)?[\\s\\S]*?<ID>([\\s\\S]*?)</ID>([\\s\\S]*?)</Hotkey>");
 
     auto hotkeysBegin = std::sregex_iterator(hotkeys.begin(), hotkeys.end(), hotkeyRegex);
     auto hotkeysEnd = std::sregex_iterator();
@@ -82,12 +82,13 @@ HOTKEYS CheatTable::ParseHotkeys(const string &hotkeys)
             keys.push_back(stoul((*j)[1].str()));
         }
 
-        string value = (*i)[6].str();
-        int id = std::stoi((*i)[8].str());
+        string value = (*i)[5].str(); // Updated index
+        int id = std::stoi((*i)[6].str()); // Updated index
         result.push_back(make_tuple(action, keys, value, id));
     }
     return result;
 }
+
 
 void CheatTable::ParseNestedCheatEntries(const string &parentNode, std::shared_ptr<CheatEntry> &parentEntry)
 {
@@ -154,7 +155,7 @@ CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath, int entries
 
         cheatTable.AddCheatEntry(entry);
         ParseNestedCheatEntries(entryStr, entry);
-
+       
         if (entries > 0 && cheatTable.cheatEntries.size() >= entries)
         {
             break;

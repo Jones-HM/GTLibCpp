@@ -102,7 +102,7 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
                 this->processId = pe.th32ProcessID;
                 this->gameWindow = FindGameWindow(gameName);
                 AddLog("FindGameProcess", "Game process found: " + gameName);
-                AddLog("FindGameProcess", "Game process id: " + std::to_string(processId));
+                AddLog("FindGameProcess", "Game process id: " + to_hex_string(processId));
                 AddLog("FindGameProcess", "Game process handle: " + to_hex_string(gameHandle));
                 AddLog("FindGameProcess", "Game window handle: " + to_hex_string(gameWindow));
 
@@ -112,9 +112,9 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
             }
         } while (Process32Next(hSnapshot, &pe));
 
-        std::string errMsg = "Game process not found";
+        std::string errMsg = "Game process not found '" + gameName + "'";
         AddLog("FindGameProcess", "Error: " + errMsg);
-        ShowError(errMsg.c_str());
+        ShowError(errMsg);
     }
     catch (const std::exception &e)
     {
@@ -314,7 +314,7 @@ bool GTLibc::WriteAddressOffset(DWORD address, DWORD offset, const T &value)
 template <typename T>
 bool GTLibc::WriteAddressOffsets(DWORD address, const std::vector<DWORD> &offsets, const T &value)
 {
-    AddLog("WriteAddressOffsets", "Trying to write to address: " + to_hex_string(address) + " with offsets: " + std::to_string(offsets.size()) + " with value: " + std::to_string(value));
+    AddLog("WriteAddressOffsets", "Trying to write to address: " + to_hex_string(address) + " with offsets: " + to_hex_string(offsets.size()) + " with value: " + std::to_string(value));
     try
     {
         for (const DWORD &offset : offsets)
@@ -365,7 +365,7 @@ template <typename T>
 T GTLibc::ReadPointer(DWORD address)
 {
     const DWORD offset = 0;
-    AddLog("ReadPointer", "Trying to read pointer at base address: " + to_hex_string(address) + " with offset: " + std::to_string(offset));
+    AddLog("ReadPointer", "Trying to read pointer at base address: " + to_hex_string(address) + " with offset: " + to_hex_string(offset));
     try
     {
         DWORD pointerAddress = ReadAddress<DWORD>(address);
@@ -509,7 +509,7 @@ bool GTLibc::WritePointerOffsets(DWORD address, const std::vector<DWORD> &offset
  */
 std::string GTLibc::ReadString(DWORD address, size_t length)
 {
-    AddLog("ReadString", "Trying to read string at address: " + std::to_string(address) + " with length: " + std::to_string(length));
+    AddLog("ReadString", "Trying to read string at address: " + to_hex_string(address) + " with length: " + std::to_string(length));
     try
     {
         char *buffer = new char[length + 1];
@@ -539,7 +539,7 @@ std::string GTLibc::ReadString(DWORD address, size_t length)
  */
 bool GTLibc::WriteString(DWORD address, const std::string &value)
 {
-    AddLog("WriteString", "Trying to write string to address: " + std::to_string(address));
+    AddLog("WriteString", "Trying to write string to address: " + to_hex_string(address));
     try
     {
         return WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL);
@@ -679,7 +679,7 @@ DWORD GTLibc::GetGameBaseAddress()
             CloseHandle(snapshot);
             uintptr_t modBaseAddr = reinterpret_cast<uintptr_t>(module.modBaseAddr);
             this->gameBaseAddress = static_cast<DWORD>(modBaseAddr);
-            AddLog("GetGameBaseAddress", "Return value: " + std::to_string(this->gameBaseAddress));
+            AddLog("GetGameBaseAddress", "Return value: " + to_hex_string(this->gameBaseAddress));
         }
         return this->gameBaseAddress;
     }
@@ -856,6 +856,7 @@ template <typename T>
 void GTLibc::CheatAction_SetValue(DWORD address, T value)
 {
     AddLog("CheatAction_SetValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -871,6 +872,7 @@ template <typename T>
 void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_IncreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method and ReadString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -888,6 +890,7 @@ template <typename T>
 void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_DecreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method and ReadString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -950,7 +953,7 @@ void GTLibc::PrintCheatTableMenu()
     Return: void
 */
 
-void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, DataType &value)
+void GTLibc::ExecuteCheatAction(std::string &cheatAction, DWORD &address, DataType &value)
 {
     AddLog("ExecuteCheatAction", "trying to execute action: " + cheatAction + " at address: " + to_hex_string(address));
     // Check if type of value is string datatype and if it is then throw error. check compile time.
@@ -980,8 +983,16 @@ void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, 
     }
 }
 
+/*
+    Description: This function will execute the cheat action with provided Template.
+    Params: cheatAction - The action to be executed.
+            address - The address to be executed.
+            value - The value to be executed.
+    Return: void
+*/
+
 template <typename T>
-void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, T &value)
+void GTLibc::ExecuteCheatAction(const std::string &cheatAction, DWORD &address, const T &value)
 {
     if (cheatAction == CheatActions.SetValue)
     {
@@ -997,47 +1008,178 @@ void GTLibc::ExecuteCheatAction(std::string &cheatAction, const DWORD &address, 
     }
 }
 
-// Execute the cheat table and generate a generic trainer.
+template <typename T>
+void GTLibc::ExecuteCheatActionCaller(const string &cheatAction, DWORD &address, const T &value)
+{
+    if constexpr (std::is_same_v<T, std::string>)
+    {
+        ExecuteCheatAction<std::string>(cheatAction, address, static_cast<std::string>(value));
+    }
+    else if constexpr (std::is_floating_point_v<T>)
+    {
+        if (std::is_same_v<T, float>)
+        {
+            ExecuteCheatAction<float>(cheatAction, address, static_cast<float>(value));
+        }
+        else if (std::is_same_v<T, double>)
+        {
+            ExecuteCheatAction<double>(cheatAction, address, static_cast<double>(value));
+        }
+    }
+    else if constexpr (std::is_integral_v<T>)
+    {
+        if constexpr (std::is_integral_v<T>)
+        {
+            if (value >= std::numeric_limits<std::int8_t>::min() && value <= std::numeric_limits<std::int8_t>::max())
+            {
+                ExecuteCheatAction<std::int8_t>(cheatAction, address, static_cast<std::int8_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::uint8_t>::min() && value <= std::numeric_limits<std::uint8_t>::max())
+            {
+                ExecuteCheatAction<std::uint8_t>(cheatAction, address, static_cast<std::uint8_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::int16_t>::min() && value <= std::numeric_limits<std::int16_t>::max())
+            {
+                ExecuteCheatAction<std::int16_t>(cheatAction, address, static_cast<std::int16_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::uint16_t>::min() && value <= std::numeric_limits<std::uint16_t>::max())
+            {
+                ExecuteCheatAction<std::uint16_t>(cheatAction, address, static_cast<std::uint16_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::int32_t>::min() && value <= std::numeric_limits<std::int32_t>::max())
+            {
+                ExecuteCheatAction<std::int32_t>(cheatAction, address, static_cast<std::int32_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::uint32_t>::min() && value <= std::numeric_limits<std::uint32_t>::max())
+            {
+                ExecuteCheatAction<std::uint32_t>(cheatAction, address, static_cast<std::uint32_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::int64_t>::min() && value <= std::numeric_limits<std::int64_t>::max())
+            {
+                ExecuteCheatAction<std::int64_t>(cheatAction, address, static_cast<std::int64_t>(value));
+            }
+            else if (value >= std::numeric_limits<std::uint64_t>::min() && value <= std::numeric_limits<std::uint64_t>::max())
+            {
+                ExecuteCheatAction<std::uint64_t>(cheatAction, address, static_cast<std::uint64_t>(value));
+            }
+            else
+            {
+                // Value is out of range for all standard integer data types
+                AddLog("ExecuteCheatActionCaller", "Value is out of range for all standard integer data types");
+            }
+        }
+        else
+        {
+            // Data type is not an integral type
+            AddLog("ExecuteCheatActionCaller", "Data type is not an integral type");
+        }
+    }
+}
+
+void GTLibc::ExecuteCheatActionForType(const string &cheatAction, DWORD &address, DataType &value, const string &variableType)
+{
+    AddLog("ExecuteCheatActionForType", "trying to execute action: " + cheatAction + " at address: " + to_hex_string(address) + " of type: " + variableType);
+    try
+    {
+        std::visit([this, &cheatAction, &address](auto &&arg)
+                   { ExecuteCheatActionCaller(cheatAction, address, arg); },
+                   value);
+    }
+    catch (const std::exception &e)
+    {
+        AddLog("ExecuteCheatActionForType", "Exception: " + std::string(e.what()));
+    }
+}
+
+/*
+    Description: This function will execute the cheat table.
+    Params: void
+    Return: void
+*/
 void GTLibc::ExecuteCheatTable()
 {
-    // 1. Print Cheat table menu.
-    PrintCheatTableMenu();
-
-    // 2. Resolve the address and values.
+    // 1. Resolve the address and values.
     for (auto &entry : g_CheatTable.cheatEntries)
     {
         // Resolving the address with offsets.
         std::vector<DWORD> offsetsSorted = entry->Offsets;
         std::reverse(offsetsSorted.begin(), offsetsSorted.end());
-        DWORD address = ResolveAddressGeneric(entry->Address, offsetsSorted);
+        AddLog("ExecuteCheatTable", "Trying to resolve address for cheat entry: " + entry->Description);
+        DWORD address = 0;
 
-        // Resolving the value.
-        std::string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
-        std::string cheatAction = std::get<0>(entry->Hotkeys[0]);
-        DataType cheatValue = ConvertStringToDataType(cheatActionValue);
+        // Update the address in the cheat table.
+        if (entry->Address != 0)
+        {
+            address = ResolveAddressGeneric(entry->Address, offsetsSorted);
+            entry->Address = address;
+        }
+        else
+        {
+            AddLog("ExecuteCheatTable", "Failed to resolve address for cheat entry: " + entry->Description);
+            continue;
+        }
 
-        // Resolving the Hotkeys Ids.
-        entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
+        // Resolving the value and Hotkeys Ids.
+        if (entry->Hotkeys.size() > 0)
+        {
+            std::string cheatActionValue = std::get<2>(entry->Hotkeys[0]);
+            std::string cheatAction = std::get<0>(entry->Hotkeys[0]);
+            // Resolving the Hotkeys Ids.
+            entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
 
-        // Update the value in the cheat table.
-        entry->Address = address;
-        entry->Value = cheatValue;
-        entry->CheatActionStr = cheatAction;
+            // std::cout << "Description: " << entry->Description << " Value: " << cheatActionValue << " Action: " << cheatAction << " Hotkeys: " << entry->HotkeyIds.size() << std::endl;
+            //  Check if cheatActionValue is not empty string.
+            if (!cheatActionValue.empty())
+            {
+                DataType cheatValue = ConvertStringToDataType(cheatActionValue);
+
+                // Update the value and action in the cheat table.
+                entry->Value = cheatValue;
+            }
+            else
+            {
+                AddLog("ExecuteCheatTable", "Failed to resolve value for cheat entry: " + entry->Description + " with action: " + cheatAction);
+            }
+
+            if (!cheatAction.empty())
+            {
+                entry->Action = cheatAction;
+            }
+            else
+            {
+                AddLog("ExecuteCheatTable", "Failed to resolve action for cheat entry: " + entry->Description);
+            }
+
+            AddLog("ExecuteCheatTable", "Resolved address: " + to_hex_string(address) + " for cheat entry: " + entry->Description);
+        }
+        else
+        {
+            AddLog("ExecuteCheatTable", "Failed to resolve hotkeys for cheat entry: " + entry->Description);
+        }
     }
 
-    // 3. Execute the cheat table.
+    // 2. Refine the Cheat table with unresolved entries.
+    g_CheatTable.cheatEntries.erase(std::remove_if(g_CheatTable.cheatEntries.begin(), g_CheatTable.cheatEntries.end(), [](auto &entry)
+                                                   { return entry->HotkeyIds.size() == 0; }),
+                                    g_CheatTable.cheatEntries.end());
+
+    // 3. Print Cheat table menu.
+    PrintCheatTableMenu();
+
+    // 4. Execute the cheat table.
     while (true)
     {
         for (auto &entry : g_CheatTable.cheatEntries)
         {
-            // std::cout << "Hotkeys:" << GetHotKeysName(entry->HotkeyIds) << std::endl;
-
             if (HotKeysDown(entry->HotkeyIds))
             {
-                ExecuteCheatAction(entry->CheatActionStr, entry->Address, entry->Value);
+                ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
+                // ExecuteCheatAction(entry->Action, entry->Address, entry->Value);
             }
-            // sleep for 100 ms
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            if (IsKeyToggled(VK_F5))
+            {
+                break;
+            }
         }
         // sleep for 100 ms
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -1312,15 +1454,11 @@ std::string GTLibc::GetHotKeysName(const std::vector<int> &keys)
 
 DataType GTLibc::ConvertStringToDataType(const std::string &str)
 {
-    if (auto value = TryParse<std::int16_t>(str))
+    if (auto value = TryParse<std::uint8_t>(str))
         return *value;
     if (auto value = TryParse<std::uint16_t>(str))
         return *value;
-    if (auto value = TryParse<std::int32_t>(str))
-        return *value;
     if (auto value = TryParse<std::uint32_t>(str))
-        return *value;
-    if (auto value = TryParse<std::int64_t>(str))
         return *value;
     if (auto value = TryParse<std::uint64_t>(str))
         return *value;
@@ -1328,10 +1466,15 @@ DataType GTLibc::ConvertStringToDataType(const std::string &str)
         return *value;
     if (auto value = TryParse<double>(str))
         return *value;
-    if (auto value = TryParse<long double>(str))
+    if (auto value = TryParse<std::string>(str))
         return *value;
 
-    return str;
+    else
+    {
+        std::cout << "Unknown data type: " << str << std::endl;
+        AddLog("ConvertStringToDataType", "Unknown data type: " + str);
+        return {};
+    }
 }
 
 template <typename T>
@@ -1351,10 +1494,11 @@ std::optional<T> GTLibc::TryParse(const std::string &str)
 
 DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList)
 {
-    AddLog("ResolveAddressGeneric", "Init parameters: " + to_hex_string(address) + " " + to_hex_string(gameBaseAddress));
+    AddLog("ResolveAddressGeneric", "Parameters: " + to_hex_string(address) + " " + to_hex_string(gameBaseAddress));
 
     if (offsetsList.size() == 0)
     {
+        AddLog("ResolveAddressGeneric", "No offsets provided, returning address: " + to_hex_string(address));
         return address;
     }
 
@@ -1401,13 +1545,13 @@ DataType GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, 
     static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
         {
             {"Byte", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint8_t>(addr) : ReadAddress<std::uint8_t>(ResolveAddressGeneric(addr, offs)); }},
             {"2 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint16_t>(addr) : ReadAddress<std::uint16_t>(ResolveAddressGeneric(addr, offs)); }},
             {"4 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint32_t>(addr) : ReadAddress<std::uint32_t>(ResolveAddressGeneric(addr, offs)); }},
             {"8 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint64_t>(addr) : ReadAddress<std::uint64_t>(ResolveAddressGeneric(addr, offs)); }},
             {"Float", [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ResolveAddressGeneric(addr, offs)); }},
             {"Double", [this](DWORD addr, const std::vector<DWORD> &offs)
@@ -1430,13 +1574,13 @@ T GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const s
     static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
         {
             {"Byte", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<BYTE>(addr) : ReadAddress<BYTE>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint8_t>(addr) : ReadAddress<std::uint8_t>(ResolveAddressGeneric(addr, offs)); }},
             {"2 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int16_t>(addr) : ReadAddress<int16_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint16_t>(addr) : ReadAddress<std::uint16_t>(ResolveAddressGeneric(addr, offs)); }},
             {"4 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int32_t>(addr) : ReadAddress<int32_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint32_t>(addr) : ReadAddress<std::uint32_t>(ResolveAddressGeneric(addr, offs)); }},
             {"8 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? ReadAddress<int64_t>(addr) : ReadAddress<int64_t>(ResolveAddressGeneric(addr, offs)); }},
+             { return offs.empty() ? ReadAddress<std::uint64_t>(addr) : ReadAddress<std::uint64_t>(ResolveAddressGeneric(addr, offs)); }},
             {"Float", [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ResolveAddressGeneric(addr, offs)); }},
             {"Double", [this](DWORD addr, const std::vector<DWORD> &offs)
@@ -1456,12 +1600,18 @@ T GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const s
 }
 
 template <typename T>
-std::string GTLibc::ValueToString(const T& value) {
-    if constexpr (std::is_arithmetic_v<T>) {
+std::string GTLibc::ValueToString(const T &value)
+{
+    if constexpr (std::is_arithmetic_v<T>)
+    {
         return std::to_string(value);
-    } else if constexpr (std::is_same_v<T, std::string>) {
+    }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
         return value;
-    } else {
+    }
+    else
+    {
         // Handle other types if necessary, or throw an exception if unsupported type
         throw std::invalid_argument("Unsupported data type for value_to_string.");
     }

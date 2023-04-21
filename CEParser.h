@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <ranges>
 #include <tuple>
+#include <variant>
 #include <windows.h>
 
 using std::string;
@@ -29,7 +30,7 @@ using std::tuple;
 
 typedef tuple<string, vector<int>, string, int> HOTKEY;
 typedef vector<tuple<string, vector<int>, string, int>> HOTKEYS;
-using DataType = std::variant<std::int16_t, std::uint16_t, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t, float, double, long double, std::string>;
+using DataType = std::variant<std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t, float, double, std::string>;
 
 namespace GTLIBC
 {
@@ -74,7 +75,7 @@ namespace GTLIBC
         HOTKEYS Hotkeys;
         vector<std::shared_ptr<CheatEntry>> NestedEntries;
         DataType Value;
-        string CheatActionStr;
+        string Action;
         vector<int> HotkeyIds;
 
         CheatEntry(const std::string &description, int id, const std::string &variableType, DWORD address,

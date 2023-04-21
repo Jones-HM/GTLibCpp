@@ -8,9 +8,6 @@
 using namespace GTLIBC;
 GTLibc gtlibc;
 
-// define the base address of the game
-int GAME_BASE_ADDRESS = 0x00400000;
-
 // Generates a generic trainer using Cheat Table.
 void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false, bool executeCheat = false)
 {
@@ -24,12 +21,15 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     }
 
     // Activate the cheat entries.
-    std::vector<int> cheatIds = {0, 1, 2, 7, 8, 9};
-    gtlibc.ActivateCheatEntries(cheatIds);
+    //std::vector<int> cheatIds = {0,1};
+    //gtlibc.ActivateCheatEntries(cheatIds);
 
     // Execute the cheat Table
     if (executeCheat)
     {
+        // Read the cheat table entries.
+        //gtlibc.ReadCheatTableEntries();
+        gtlibc.EnableLogs(true);
         gtlibc.ExecuteCheatTable();
     }
 }
@@ -38,17 +38,15 @@ int main()
 {
     // Finding the game process
     std::string gameName = "igi";
-    gtlibc.EnableLogs(true);
-    gtlibc.FindGameProcess(gameName);
-    GAME_BASE_ADDRESS = gtlibc.GetGameBaseAddress();
+    auto gameHandle = gtlibc.FindGameProcess(gameName);
 
-    std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << GAME_BASE_ADDRESS << " Handle: " << gtlibc.GetGameHandle() << std::endl;
+    std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << gtlibc.GetGameBaseAddress() << " Handle: " << gtlibc.GetGameHandle() << std::endl;
 
     // Selecting the cheat table file.
     std::string cheatTableFile = "CheatTable/igi.ct";
 
     // Generate the cheat table demo.
-    GenerateGenericTrainer(cheatTableFile, false, true);
+    GenerateGenericTrainer(cheatTableFile,false,true);
 
     return 0;
 }

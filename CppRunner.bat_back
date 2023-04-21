@@ -15,11 +15,6 @@ if not exist "%FILENAME%" (
 
 g++ -std=c++17 -w -DGT_USE_CE_PARSER -o "%~n1.exe" GTLibc.cpp CEParser.cpp %FILENAME%
 
-if %ERRORLEVEL% neq 0 (
-    echo Error: Compilation failed for file %FILENAME%
-    exit /b 1
-)
-
 if /i "%DEBUG_OPTION%"=="--debug" (
     "%~n1.exe" 2>&1
 ) else (
