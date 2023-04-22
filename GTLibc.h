@@ -157,17 +157,12 @@ namespace GTLIBC
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList);
         bool IsValidCheatTable(const std::string &xmlData);
         void PrintCheatTableMenu();
-        void ExecuteCheatAction(std::string &cheatAction, DWORD &address, DataType &value);
         template <typename T>
         void ExecuteCheatAction(const std::string &cheatAction, DWORD &address, const T &value);
-
-        void ExecuteCheatActionForType(const string &cheatAction, DWORD &address, DataType &value, const string &variableType);
-        template <typename T>
-        void ExecuteCheatActionCaller(const string &cheatAction, DWORD &address, const T &value, const string &variableType);
-
+        void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, DataType &value, const string &variableType);
         void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType);
         template <typename T>
-        void ExecuteCheatActionWithType(const std::string &cheatAction, DWORD &address, const std::string &valueStr);
+        void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &valueStr);
 
 #endif
 
