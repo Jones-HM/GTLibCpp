@@ -9,7 +9,7 @@ using namespace GTLIBC;
 GTLibc gtlibc;
 
 // Generates a generic trainer using Cheat Table.
-void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false, bool executeCheat = false)
+void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false,bool readCheat = false, bool executeCheat = false,bool activateCheat = false,std::vector<int> cheatIds = {})
 {
     // Read the cheat table file
     gtlibc.ReadCheatTable(cheatTableFile);
@@ -20,9 +20,17 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
         gtlibc.PrintCheatTable();
     }
 
+    // Read the cheat table entries.
+    if (readCheat)
+    {
+        gtlibc.ReadCheatTableEntries();
+    }
+
     // Activate the cheat entries.
-    //std::vector<int> cheatIds = {0,1};
-    //gtlibc.ActivateCheatEntries(cheatIds);
+    if (activateCheat)
+    {
+        gtlibc.ActivateCheatTableEntries(cheatIds);
+    }
 
     // Execute the cheat Table
     if (executeCheat)
@@ -45,8 +53,8 @@ int main()
     // Selecting the cheat table file.
     std::string cheatTableFile = "CheatTable/assaultcube.ct";
 
-    // Generate the cheat table demo.
-    GenerateGenericTrainer(cheatTableFile,false,false);
+    // Generate the cheat table demo with read and execute.
+    GenerateGenericTrainer(cheatTableFile, false, true, true, false, {});
 
     return 0;
 }

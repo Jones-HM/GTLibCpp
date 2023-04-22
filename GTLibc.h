@@ -48,6 +48,7 @@
 #define FUNC_NAME __FUNCTION__
 #endif
 
+// Helper macros
 #define to_hex_string(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << std::uppercase << std::hex << hex_val)).str()
 using DataType = std::variant<std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t, float, double, std::string>;
 
@@ -58,14 +59,15 @@ namespace GTLIBC
     class GTLibc
     {
     public:
-        GTLibc();                            // Default constructor
-        GTLibc(bool enableLogs);             // Constructor
-        GTLibc(const std::string &gameName); // Constructor
+        GTLibc();                                             // Default constructor
+        GTLibc(bool enableLogs);                              // Constructor
+        GTLibc(const std::string &gameName);                  // Constructor
         GTLibc(const std::string &gameName, bool enableLogs); // Constructor
-        ~GTLibc();                           // Destructor
-        GTLibc(const GTLibc &) = default;    // Copy constructor
-        GTLibc(GTLibc &&) = default;         // Move constructor
+        ~GTLibc();                                            // Destructor
+        GTLibc(const GTLibc &) = default;                     // Copy constructor
+        GTLibc(GTLibc &&) = default;                          // Move constructor
 
+        // GTLibc public methods.
         // Find game process and window.
         bool FindGameProcess(const std::string &gameName);
         HWND FindGameWindow(const std::string &windowName);
@@ -111,6 +113,7 @@ namespace GTLIBC
         bool IsKeyPressed(int keycode);
         bool IsKeyToggled(int keycode);
 
+        // Game process and window information.
         std::string GetGameName();
         DWORD GetProcessID();
         HANDLE GetGameHandle4mHWND(HWND hwnd);
@@ -118,11 +121,9 @@ namespace GTLIBC
         HANDLE GetGameHandle();
         DWORD GetGameBaseAddress();
 
-        bool SuspendResumeProcess(bool suspend);
-
         void EnableLogs(bool status);
 
-// Cheat Engine variables.
+// Cheat Engine variables. - Public
 #ifdef GT_USE_CE_PARSER
         CheatTable ReadCheatTable(const std::string &cheatTableFile, int entries = -1);
         void PrintCheatTable();
@@ -131,33 +132,15 @@ namespace GTLIBC
         void AddCheatEntry(const std::string &description, const std::string &dataType, const DWORD address,
                            const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
                            T hotkeyValue);
-        void ActivateCheatEntries(const std::vector<int> &cheatEntryIndex);
+        void ActivateCheatTableEntries(const std::vector<int> &cheatEntryIndex);
         void ExecuteCheatTable();
-
-        template <typename T>
-        void CheatAction_SetValue(DWORD address, T value);
-
-        template <typename T>
-        void CheatAction_IncreaseValue(DWORD address, T value);
-
-        template <typename T>
-        void CheatAction_DecreaseValue(DWORD address, T value);
 #endif
 
     private:
-        void AddLog(const std::string &methodName, const std::string &logMessage);
-        void ShowError(const std::string &errorMessage);
-        void ShowWarning(const std::string &warningMessage);
-        void ShowInfo(const std::string &infoMessage);
-        friend class CheatTable; // Make CheatTable class a friend of GTLibc class
-
-// Cheat Engine variables.
+// Cheat Engine variables. - Private
 #ifdef GT_USE_CE_PARSER
-        void PrintValue(const DataType &value);
-        template <typename T>
-        T ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
+        void PrintCheatValue(const DataType &value);
         DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
-        DataType ReadAddressGenericWrapper(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList);
         bool IsValidCheatTable(const std::string &xmlData);
         void PrintCheatTableMenu();
@@ -167,8 +150,21 @@ namespace GTLIBC
         void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType);
         template <typename T>
         void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &valueStr);
+        // Cheat Action functions.
+        template <typename T>
+        void CheatAction_SetValue(DWORD address, T value);
+        template <typename T>
+        void CheatAction_IncreaseValue(DWORD address, T value);
+        template <typename T>
+        void CheatAction_DecreaseValue(DWORD address, T value);
 
 #endif
+        // GTLibc private methods.
+        void AddLog(const std::string &methodName, const std::string &logMessage);
+        void ShowError(const std::string &errorMessage);
+        void ShowWarning(const std::string &warningMessage);
+        void ShowInfo(const std::string &infoMessage);
+        friend class CheatTable; // Make CheatTable class a friend of GTLibc class
 
         // Utility functions
         template <typename T>
