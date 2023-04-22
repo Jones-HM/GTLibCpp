@@ -856,7 +856,6 @@ template <typename T>
 void GTLibc::CheatAction_SetValue(DWORD address, T value)
 {
     AddLog("CheatAction_SetValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
-    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -872,7 +871,6 @@ template <typename T>
 void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_IncreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
-    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method and ReadString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -890,7 +888,6 @@ template <typename T>
 void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_DecreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
-    std::cout << "trying to write value: " << ValueToString(value) << " at address: " << to_hex_string(address) << " of type: " << GetDataTypeInfo(value) << std::endl;
     // Check if value is a string then call WriteString method and ReadString method.
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -973,6 +970,7 @@ void GTLibc::ExecuteCheatAction(const std::string &cheatAction, DWORD &address, 
 template <typename T>
 void GTLibc::ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &valueStr)
 {
+    AddLog("ExecuteCheatActionTypeHelper", "Trying to execute cheat action: " + cheatAction + " at address: " + to_hex_string(address) + " with value: " + valueStr);
     T value;
     std::istringstream iss(valueStr);
 
@@ -984,21 +982,23 @@ void GTLibc::ExecuteCheatActionType(const std::string &cheatAction, DWORD &addre
 
 void GTLibc::ExecuteCheatActionType(const std::string& cheatAction, DWORD& address, const std::string& value, const std::string& variableType)
 {
-    static const std::map<std::string, std::function<void()>> typeMap =
+    AddLog("ExecuteCheatActionType", "Trying to execute cheat action: " + cheatAction + " at address: " + to_hex_string(address) + " with value: " + value + " of type: " + variableType);
+    
+    const std::map<std::string, std::function<void(const std::string&, DWORD&, const std::string&)>> typeMap =
     {
-        { CheatTypes.Byte, [&]() { ExecuteCheatActionType<std::uint8_t>(cheatAction, address, value); } },
-        { CheatTypes.Short, [&]() { ExecuteCheatActionType<std::uint16_t>(cheatAction, address, value); } },
-        { CheatTypes.Integer, [&]() { ExecuteCheatActionType<std::uint32_t>(cheatAction, address, value); } },
-        { CheatTypes.Long, [&]() { ExecuteCheatActionType<std::uint64_t>(cheatAction, address, value); } },
-        { CheatTypes.Float, [&]() { ExecuteCheatActionType<float>(cheatAction, address, value); } },
-        { CheatTypes.Double, [&]() { ExecuteCheatActionType<double>(cheatAction, address, value); } },
-        { CheatTypes.String, [&]() { ExecuteCheatActionType<std::string>(cheatAction, address, value); } }
+        { CheatTypes.Byte, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint8_t>(action, addr, val); } },
+        { CheatTypes.Short, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint16_t>(action, addr, val); } },
+        { CheatTypes.Integer, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint32_t>(action, addr, val); } },
+        { CheatTypes.Long, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint64_t>(action, addr, val); } },
+        { CheatTypes.Float, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<float>(action, addr, val); } },
+        { CheatTypes.Double, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<double>(action, addr, val); } },
+        { CheatTypes.String, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::string>(action, addr, val); } }
     };
 
     auto iter = typeMap.find(variableType);
     if (iter != typeMap.end())
     {
-        iter->second();
+        iter->second(cheatAction, address, value);
     }
     else
     {
@@ -1006,6 +1006,8 @@ void GTLibc::ExecuteCheatActionType(const std::string& cheatAction, DWORD& addre
         AddLog("ExecuteCheatActionType", "Invalid variable type: " + variableType);
     }
 }
+
+
 
 template <typename T>
 auto ValueToString(const T &value)
@@ -1020,9 +1022,9 @@ auto ValueToString(const T &value)
     }
 }
 
-void GTLibc::ExecuteCheatActionType(const string &cheatAction, DWORD &address, DataType &value, const string &variableType)
+void GTLibc::ExecuteCheatActionForType(const string &cheatAction, DWORD &address, DataType &value, const string &variableType)
 {
-    AddLog("ExecuteCheatActionType", "trying to execute action: " + cheatAction + " at address: " + to_hex_string(address) + " of type: " + variableType);
+    AddLog("ExecuteCheatActionForType", "Trying to execute action: " + cheatAction + " at address: " + to_hex_string(address) + " of type: " + variableType);
     try
     {
         std::visit([this, &cheatAction, &address, &variableType](auto &&arg)
@@ -1034,7 +1036,7 @@ void GTLibc::ExecuteCheatActionType(const string &cheatAction, DWORD &address, D
     }
     catch (const std::exception &e)
     {
-        AddLog("ExecuteCheatActionType", "Exception: " + std::string(e.what()));
+        AddLog("ExecuteCheatActionForType", "Exception: " + std::string(e.what()));
     }
 }
 
@@ -1118,9 +1120,10 @@ void GTLibc::ExecuteCheatTable()
     {
         for (auto &entry : g_CheatTable.cheatEntries)
         {
+            //std::cout << "Des : " << entry->Description << " Addr : " << to_hex_string(entry->Address) << std::endl;
             if (HotKeysDown(entry->HotkeyIds))
             {
-                ExecuteCheatActionType(entry->Action, entry->Address, entry->Value, entry->VariableType);
+                ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
             }
             if (IsKeyToggled(VK_F5))
             {

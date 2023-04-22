@@ -159,7 +159,7 @@ namespace GTLIBC
         void PrintCheatTableMenu();
         template <typename T>
         void ExecuteCheatAction(const std::string &cheatAction, DWORD &address, const T &value);
-        void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, DataType &value, const string &variableType);
+        void ExecuteCheatActionForType(const std::string &cheatAction, DWORD &address, DataType &value, const string &variableType);
         void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType);
         template <typename T>
         void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &valueStr);
