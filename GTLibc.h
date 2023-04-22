@@ -163,7 +163,11 @@ namespace GTLIBC
 
         void ExecuteCheatActionForType(const string &cheatAction, DWORD &address, DataType &value, const string &variableType);
         template <typename T>
-        void ExecuteCheatActionCaller(const string &cheatAction,DWORD &address,const T &value);
+        void ExecuteCheatActionCaller(const string &cheatAction, DWORD &address, const T &value, const string &variableType);
+
+        void ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType);
+        template <typename T>
+        void ExecuteCheatActionWithType(const std::string &cheatAction, DWORD &address, const std::string &valueStr);
 
 #endif
 

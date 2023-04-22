@@ -1009,70 +1009,105 @@ void GTLibc::ExecuteCheatAction(const std::string &cheatAction, DWORD &address, 
 }
 
 template <typename T>
-void GTLibc::ExecuteCheatActionCaller(const string &cheatAction, DWORD &address, const T &value)
+void GTLibc::ExecuteCheatActionWithType(const std::string &cheatAction, DWORD &address, const std::string &valueStr)
 {
+    T value;
+    std::istringstream iss(valueStr);
+
+    if (iss >> value)
+    {
+        ExecuteCheatAction<T>(cheatAction, address, value);
+    }
+}
+
+void GTLibc::ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType)
+{
+    if (variableType == CheatTypes.Byte)
+    {
+        ExecuteCheatActionWithType<std::uint8_t>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.Short)
+    {
+        ExecuteCheatActionWithType<std::uint16_t>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.Integer)
+    {
+        ExecuteCheatActionWithType<std::uint32_t>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.Long)
+    {
+        ExecuteCheatActionWithType<std::uint64_t>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.Float)
+    {
+        ExecuteCheatActionWithType<float>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.Double)
+    {
+        ExecuteCheatActionWithType<double>(cheatAction, address, value);
+    }
+    else if (variableType == CheatTypes.String)
+    {
+        ExecuteCheatAction<std::string>(cheatAction, address, value);
+    }
+}
+
+
+template <typename T>
+void GTLibc::ExecuteCheatActionCaller(const std::string &cheatAction, DWORD &address, const T &value, const std::string &variableType)
+{
+    auto LogMismatchError = [&]()
+    {
+        AddLog("ExecuteCheatActionCaller", "Data type mismatch for action: " + cheatAction + " at address: " + to_hex_string(address) + " of type: " + variableType);
+    };
+
     if constexpr (std::is_same_v<T, std::string>)
     {
-        ExecuteCheatAction<std::string>(cheatAction, address, static_cast<std::string>(value));
+        if (variableType == CheatTypes.String)
+            ExecuteCheatAction<std::string>(cheatAction, address, static_cast<std::string>(value));
     }
     else if constexpr (std::is_floating_point_v<T>)
     {
         if (std::is_same_v<T, float>)
         {
-            ExecuteCheatAction<float>(cheatAction, address, static_cast<float>(value));
+            if (variableType == CheatTypes.Float)
+                ExecuteCheatAction<float>(cheatAction, address, static_cast<float>(value));
+            else if (variableType == CheatTypes.Double)
+                ExecuteCheatAction<double>(cheatAction, address, static_cast<double>(value));
         }
         else if (std::is_same_v<T, double>)
         {
-            ExecuteCheatAction<double>(cheatAction, address, static_cast<double>(value));
+            if (variableType == CheatTypes.Double)
+                ExecuteCheatAction<double>(cheatAction, address, static_cast<double>(value));
         }
     }
-    else if constexpr (std::is_integral_v<T>)
+    if constexpr (std::is_integral_v<T>)
     {
-        if constexpr (std::is_integral_v<T>)
+        if (value >= std::numeric_limits<T>::min() && value <= std::numeric_limits<T>::max())
         {
-            if (value >= std::numeric_limits<std::int8_t>::min() && value <= std::numeric_limits<std::int8_t>::max())
-            {
-                ExecuteCheatAction<std::int8_t>(cheatAction, address, static_cast<std::int8_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::uint8_t>::min() && value <= std::numeric_limits<std::uint8_t>::max())
-            {
-                ExecuteCheatAction<std::uint8_t>(cheatAction, address, static_cast<std::uint8_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::int16_t>::min() && value <= std::numeric_limits<std::int16_t>::max())
-            {
-                ExecuteCheatAction<std::int16_t>(cheatAction, address, static_cast<std::int16_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::uint16_t>::min() && value <= std::numeric_limits<std::uint16_t>::max())
-            {
-                ExecuteCheatAction<std::uint16_t>(cheatAction, address, static_cast<std::uint16_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::int32_t>::min() && value <= std::numeric_limits<std::int32_t>::max())
-            {
-                ExecuteCheatAction<std::int32_t>(cheatAction, address, static_cast<std::int32_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::uint32_t>::min() && value <= std::numeric_limits<std::uint32_t>::max())
-            {
-                ExecuteCheatAction<std::uint32_t>(cheatAction, address, static_cast<std::uint32_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::int64_t>::min() && value <= std::numeric_limits<std::int64_t>::max())
-            {
-                ExecuteCheatAction<std::int64_t>(cheatAction, address, static_cast<std::int64_t>(value));
-            }
-            else if (value >= std::numeric_limits<std::uint64_t>::min() && value <= std::numeric_limits<std::uint64_t>::max())
-            {
-                ExecuteCheatAction<std::uint64_t>(cheatAction, address, static_cast<std::uint64_t>(value));
-            }
-            else
-            {
-                // Value is out of range for all standard integer data types
-                AddLog("ExecuteCheatActionCaller", "Value is out of range for all standard integer data types");
-            }
+            ExecuteCheatAction<T>(cheatAction, address, value);
         }
         else
         {
-            // Data type is not an integral type
-            AddLog("ExecuteCheatActionCaller", "Data type is not an integral type");
+            AddLog("ExecuteCheatActionCaller", "Value is out of range for the specified integer data type");
         }
+    }
+    else
+    {
+        LogMismatchError();
+    }
+}
+
+template <typename T>
+auto ValueToString(const T &value)
+{
+    if constexpr (std::is_arithmetic_v<T>)
+    {
+        return std::to_string(value);
+    }
+    else
+    {
+        return value;
     }
 }
 
@@ -1081,8 +1116,11 @@ void GTLibc::ExecuteCheatActionForType(const string &cheatAction, DWORD &address
     AddLog("ExecuteCheatActionForType", "trying to execute action: " + cheatAction + " at address: " + to_hex_string(address) + " of type: " + variableType);
     try
     {
-        std::visit([this, &cheatAction, &address](auto &&arg)
-                   { ExecuteCheatActionCaller(cheatAction, address, arg); },
+        std::visit([this, &cheatAction, &address, &variableType](auto &&arg)
+                   {
+                       auto valueStr = ValueToString(arg);
+                       ExecuteCheatActionType(cheatAction, address, valueStr, variableType);
+                   },
                    value);
     }
     catch (const std::exception &e)
@@ -1090,6 +1128,7 @@ void GTLibc::ExecuteCheatActionForType(const string &cheatAction, DWORD &address
         AddLog("ExecuteCheatActionForType", "Exception: " + std::string(e.what()));
     }
 }
+
 
 /*
     Description: This function will execute the cheat table.
@@ -1127,7 +1166,6 @@ void GTLibc::ExecuteCheatTable()
             // Resolving the Hotkeys Ids.
             entry->HotkeyIds = std::get<1>(entry->Hotkeys[0]);
 
-            // std::cout << "Description: " << entry->Description << " Value: " << cheatActionValue << " Action: " << cheatAction << " Hotkeys: " << entry->HotkeyIds.size() << std::endl;
             //  Check if cheatActionValue is not empty string.
             if (!cheatActionValue.empty())
             {
@@ -1174,7 +1212,6 @@ void GTLibc::ExecuteCheatTable()
             if (HotKeysDown(entry->HotkeyIds))
             {
                 ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
-                // ExecuteCheatAction(entry->Action, entry->Address, entry->Value);
             }
             if (IsKeyToggled(VK_F5))
             {
