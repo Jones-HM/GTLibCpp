@@ -29,7 +29,6 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     {
         // Read the cheat table entries.
         //gtlibc.ReadCheatTableEntries();
-        gtlibc.EnableLogs(true);
         gtlibc.ExecuteCheatTable();
     }
 }
@@ -37,16 +36,17 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
 int main()
 {
     // Finding the game process
-    std::string gameName = "igi";
+    gtlibc.EnableLogs(true);
+    std::string gameName = "ac_client.exe";
     auto gameHandle = gtlibc.FindGameProcess(gameName);
 
     std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << gtlibc.GetGameBaseAddress() << " Handle: " << gtlibc.GetGameHandle() << std::endl;
 
     // Selecting the cheat table file.
-    std::string cheatTableFile = "CheatTable/igi.ct";
+    std::string cheatTableFile = "CheatTable/assaultcube.ct";
 
     // Generate the cheat table demo.
-    GenerateGenericTrainer(cheatTableFile,false,true);
+    GenerateGenericTrainer(cheatTableFile,false,false);
 
     return 0;
 }

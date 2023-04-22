@@ -64,6 +64,7 @@ namespace GTLIBC
     inline CheatAction CheatActions = {"Set Value", "Increase Value", "Decrease Value", "Freeze", "Unfreeze"};
     inline CheatType CheatTypes = {"Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "String"};
 
+    // Define CheatEntry class
     class CheatEntry
     {
     public:
@@ -98,7 +99,7 @@ namespace GTLIBC
             this->gameBaseAddress = gameBaseAddress;
         }
 
-        CheatTable ParseCheatTable(const std::string &cheatTablePath,int entries);
+        CheatTable ParseCheatTable(const std::string &cheatTableData,int entries);
         void AddCheatEntry(std::shared_ptr<CheatEntry> entry);
         void AddCheatEntry(const std::string &description, int id, const std::string &dataType, const DWORD address,
                            const vector<DWORD> &offsets, const HOTKEYS &hotkeys);
@@ -115,6 +116,7 @@ namespace GTLIBC
         vector<DWORD> ParseOffsets(const std::string &offsets);
         HOTKEYS ParseHotkeys(const std::string &hotkeys);
         void ParseNestedCheatEntries(const std::string &parentNode, std::shared_ptr<CheatEntry> &parentEntry);
+        std::string AddCheatEntryLog(std::shared_ptr<CheatEntry> &entry);
     };
 } // namespace GTLibc
 

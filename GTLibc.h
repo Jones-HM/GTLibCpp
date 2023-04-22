@@ -53,12 +53,15 @@ using DataType = std::variant<std::uint8_t, std::uint16_t, std::uint32_t, std::u
 
 namespace GTLIBC
 {
+    class CheatTable; // Forward declaration of CheatTable class
+
     class GTLibc
     {
     public:
         GTLibc();                            // Default constructor
         GTLibc(bool enableLogs);             // Constructor
         GTLibc(const std::string &gameName); // Constructor
+        GTLibc(const std::string &gameName, bool enableLogs); // Constructor
         ~GTLibc();                           // Destructor
         GTLibc(const GTLibc &) = default;    // Copy constructor
         GTLibc(GTLibc &&) = default;         // Move constructor
@@ -146,6 +149,7 @@ namespace GTLIBC
         void ShowError(const std::string &errorMessage);
         void ShowWarning(const std::string &warningMessage);
         void ShowInfo(const std::string &infoMessage);
+        friend class CheatTable; // Make CheatTable class a friend of GTLibc class
 
 // Cheat Engine variables.
 #ifdef GT_USE_CE_PARSER
@@ -192,6 +196,6 @@ namespace GTLIBC
 #ifdef GT_USE_CE_PARSER
     inline static CheatTable g_CheatTable;
 #endif
-}
+} // namespace GTLibc
 
 #endif

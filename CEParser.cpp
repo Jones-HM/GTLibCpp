@@ -1,4 +1,5 @@
 #include "CEParser.h"
+#include "GTLibc.h"
 using namespace GTLIBC;
 
 void CheatTable::AddCheatEntry(std::shared_ptr<CheatEntry> entry)
@@ -82,13 +83,12 @@ HOTKEYS CheatTable::ParseHotkeys(const string &hotkeys)
             keys.push_back(stoul((*j)[1].str()));
         }
 
-        string value = (*i)[5].str(); // Updated index
+        string value = (*i)[5].str();      // Updated index
         int id = std::stoi((*i)[6].str()); // Updated index
         result.push_back(make_tuple(action, keys, value, id));
     }
     return result;
 }
-
 
 void CheatTable::ParseNestedCheatEntries(const string &parentNode, std::shared_ptr<CheatEntry> &parentEntry)
 {
@@ -124,12 +124,46 @@ void CheatTable::ParseNestedCheatEntries(const string &parentNode, std::shared_p
     }
 }
 
-CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath, int entries = -1)
+std::string CheatTable::AddCheatEntryLog(std::shared_ptr<CheatEntry> &entry)
 {
+        // Adding log entry data to log.
+        std::stringstream logEntry;
+        logEntry << "Description: " << entry->Description << " "
+                 << "ID: " << entry->Id << " "
+                 << "VariableType: " << entry->VariableType << " "
+                 << "Address: " << entry->Address << " "
+                 << "Offsets: ";
+
+        for (auto &offset : entry->Offsets)
+        {
+            logEntry << offset << " ";
+        }
+
+        logEntry << "Hotkeys: ";
+        for (auto &hotkey : entry->Hotkeys)
+        {
+            logEntry << "Action: " << std::get<0>(hotkey) << " "
+                     << "Keys: [";
+
+            for (auto &key : std::get<1>(hotkey))
+            {
+                logEntry << g_GTLibc->KeyCodeToName(key) << " ";
+            }
+
+            logEntry << "] "
+                     << "Value: " << std::get<2>(hotkey) << " "
+                     << "ID: " << std::get<3>(hotkey) << " ";
+        }
+    return logEntry.str();
+}
+
+CheatTable CheatTable::ParseCheatTable(const string &cheatTableData, int entries = -1)
+{
+    g_GTLibc->AddLog("ParseCheatTable", "Parsing cheat table with data size: " + std::to_string(cheatTableData.size()) + " and entries: " + std::to_string(entries));
     CheatTable cheatTable;
     std::smatch entryMatches;
     std::regex entryRegex("<CheatEntry>([\\s\\S]*?)</CheatEntry>");
-    auto entriesBegin = std::sregex_iterator(cheatTablePath.begin(), cheatTablePath.end(), entryRegex);
+    auto entriesBegin = std::sregex_iterator(cheatTableData.begin(), cheatTableData.end(), entryRegex);
     auto entriesEnd = std::sregex_iterator();
 
     for (auto i = entriesBegin; i != entriesEnd; ++i)
@@ -152,14 +186,18 @@ CheatTable CheatTable::ParseCheatTable(const string &cheatTablePath, int entries
         vector<DWORD> offsets = ParseOffsets(entryStr);
         auto hotkeys = ParseHotkeys(entryStr);
         std::shared_ptr<CheatEntry> entry = std::make_shared<CheatEntry>(description, id, variableType, address, offsets, hotkeys);
+        std::string cheatEntryLog = AddCheatEntryLog(entry);
+        g_GTLibc->AddLog("ParseCheatTable", "Parsed entry: " + cheatEntryLog);
 
         cheatTable.AddCheatEntry(entry);
         ParseNestedCheatEntries(entryStr, entry);
-       
+
         if (entries > 0 && cheatTable.cheatEntries.size() >= entries)
         {
+            g_GTLibc->AddLog("ParseCheatTable", "Reached max entries: " + std::to_string(entries));
             break;
         }
+        g_GTLibc->AddLog("ParseCheatTable", "Finished parsing entry: " + entry->Description);
     }
 
     return cheatTable;

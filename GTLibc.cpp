@@ -1,27 +1,34 @@
 #include "GTLibc.h"
 // Defining CE_PARSER.
-#define GT_USE_CE_PARSER
+//#define GT_USE_CE_PARSER
 using namespace GTLIBC;
 
 GTLibc::GTLibc()
+    : GTLibc(false)
 {
-    logFile = "GTLibc.log";
-    enableLogs = false;
     g_GTLibc = this;
 }
 
 GTLibc::GTLibc(bool enableLogs)
+    : GTLibc("", enableLogs)
 {
-    logFile = "GTLibc.log";
-    this->enableLogs = enableLogs;
     g_GTLibc = this;
 }
 
 GTLibc::GTLibc(const std::string &gameName)
+    : GTLibc(gameName, false)
+{
+    g_GTLibc = this;
+}
+
+GTLibc::GTLibc(const std::string &gameName, bool enableLogs)
 {
     logFile = "GTLibc.log";
-    enableLogs = false;
-    FindGameProcess(gameName);
+    this->enableLogs = enableLogs;
+    if (!gameName.empty())
+    {
+        FindGameProcess(gameName);
+    }
     g_GTLibc = this;
 }
 
@@ -33,6 +40,7 @@ GTLibc::~GTLibc()
     }
     g_GTLibc = nullptr;
 }
+
 
 /*
  * @brief Find game process by name
@@ -912,13 +920,7 @@ void GTLibc::PrintCheatTableMenu()
     int cheatIndex = 1;
 
     // Loop through all the cheat entries.
-    std::cout << "Index. "
-              << "\t"
-              << "Description"
-              << "\t"
-              << "Action"
-              << "\t"
-              << "Hotkeys" << std::endl;
+    std::cout << "Index. "<< "\t" << "Description" << "\t" << "Action" << "\t" << "Hotkeys" << std::endl;
 
     for (auto &entry : g_CheatTable.cheatEntries)
     {
@@ -1007,8 +1009,7 @@ void GTLibc::ExecuteCheatActionType(const std::string& cheatAction, DWORD& addre
     }
 }
 
-
-
+//Helper function to convert any type to string.
 template <typename T>
 auto ValueToString(const T &value)
 {
