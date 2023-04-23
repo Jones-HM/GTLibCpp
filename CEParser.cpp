@@ -1,5 +1,6 @@
 #include "CEParser.h"
 #include "GTLibc.h"
+
 using namespace GTLIBC;
 
 void CheatTable::AddCheatEntry(std::shared_ptr<CheatEntry> entry)

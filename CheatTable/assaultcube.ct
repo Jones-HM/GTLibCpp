@@ -4,6 +4,7 @@
     <CheatEntry>
       <ID>4</ID>
       <Description>"LocalEntity Pointer1"</Description>
+      <LastState Value="07240A20" RealAddress="0057E0A8"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -11,6 +12,7 @@
     <CheatEntry>
       <ID>7</ID>
       <Description>"LocalEntity Pointer2"</Description>
+      <LastState Value="07240A20" RealAddress="0058AC00"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+18AC00</Address>
@@ -18,6 +20,7 @@
     <CheatEntry>
       <ID>8</ID>
       <Description>"LocalEntity Pointer3"</Description>
+      <LastState Value="07240A20" RealAddress="00595404"/>
       <ShowAsHex>1</ShowAsHex>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+195404</Address>
@@ -25,6 +28,7 @@
     <CheatEntry>
       <ID>9</ID>
       <Description>"Health"</Description>
+      <LastState Value="100" RealAddress="07240B0C"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -46,6 +50,7 @@
     <CheatEntry>
       <ID>10</ID>
       <Description>"Riffle Ammo"</Description>
+      <LastState Value="19" RealAddress="07240B60"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -56,6 +61,7 @@
     <CheatEntry>
       <ID>25</ID>
       <Description>"CurrentWeapon Ammo"</Description>
+      <LastState Value="19" RealAddress="07240B60"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>4 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -79,6 +85,7 @@
     <CheatEntry>
       <ID>12</ID>
       <Description>"ZCord"</Description>
+      <LastState Value="-12" RealAddress="07240A50"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -100,6 +107,7 @@
     <CheatEntry>
       <ID>13</ID>
       <Description>"XCord"</Description>
+      <LastState Value="77.09999847" RealAddress="07240A4C"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -121,6 +129,7 @@
     <CheatEntry>
       <ID>23</ID>
       <Description>"YCord"</Description>
+      <LastState Value="91.09999847" RealAddress="07240A48"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+195404</Address>
@@ -142,6 +151,7 @@
     <CheatEntry>
       <ID>14</ID>
       <Description>"Pitch Pointer"</Description>
+      <LastState Value="196.4539948" RealAddress="07240A54"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -152,6 +162,7 @@
     <CheatEntry>
       <ID>17</ID>
       <Description>"Yaw Pointer"</Description>
+      <LastState Value="-4.428591251" RealAddress="07240A58"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>Float</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -162,6 +173,7 @@
     <CheatEntry>
       <ID>26</ID>
       <Description>"Recoil 1"</Description>
+      <LastState Value="25" RealAddress="0056BF8E"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>2 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -174,6 +186,7 @@
     <CheatEntry>
       <ID>27</ID>
       <Description>"Recoil2"</Description>
+      <LastState Value="50" RealAddress="0056BF90"/>
       <ShowAsSigned>0</ShowAsSigned>
       <VariableType>2 Bytes</VariableType>
       <Address>ac_client.exe+17E0A8</Address>
@@ -182,6 +195,13 @@
         <Offset>C</Offset>
         <Offset>364</Offset>
       </Offsets>
+    </CheatEntry>
+    <CheatEntry>
+      <ID>28</ID>
+      <Description>"Armor"</Description>
+      <LastState Value="50" RealAddress="07240B10"/>
+      <VariableType>4 Bytes</VariableType>
+      <Address>07240B10</Address>
     </CheatEntry>
   </CheatEntries>
   <UserdefinedSymbols/>

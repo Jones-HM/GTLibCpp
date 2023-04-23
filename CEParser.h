@@ -42,12 +42,6 @@ namespace GTLIBC
         string DecreaseValue;
         string Freeze;
         string Unfreeze;
-
-        template <typename T>
-        std::size_t operator()(T t) const
-        {
-            return static_cast<std::size_t>(t);
-        }
     };
 
     // Define CheatDataType struct
@@ -61,6 +55,7 @@ namespace GTLIBC
         string Double;
         string String;
     };
+    
     inline CheatAction CheatActions = {"Set Value", "Increase Value", "Decrease Value", "Freeze", "Unfreeze"};
     inline CheatType CheatTypes = {"Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "String"};
 

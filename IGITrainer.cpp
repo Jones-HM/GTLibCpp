@@ -1,6 +1,7 @@
 #include "GTLibc.cpp"
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 GTLibc gtlibc(true);
 DWORD game_base_address = 0x00400000;
@@ -86,17 +87,13 @@ int main()
             SetClips();
         }
 
-        else if (gtlibc.IsKeyToggled(VK_F4))
-        {
-
-        }
-
         else if (gtlibc.IsKeyToggled(VK_F5))
         {
             break;
         }
 
-        Sleep(100);
+        // Sleep for 100ms
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     std::cout << "Trainer made using GTLibc :)" << std::endl;

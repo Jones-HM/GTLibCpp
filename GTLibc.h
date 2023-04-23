@@ -20,8 +20,8 @@
 #include <type_traits>
 #include <array>
 #include <filesystem>
-#include <unordered_map>
 #include <cstdint>
+#include <charconv>
 
 /*Defining WIN32 Constants*/
 #define WINVER 0x0500       // Sets the minimum required platform to Windows 2000.
@@ -100,9 +100,9 @@ namespace GTLIBC
         bool WritePointerOffset(DWORD address, const std::vector<DWORD> &offsets, const T &value);
 
         template <typename T>
-        T ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsetsList);
+        T ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsets);
         template <typename T>
-        bool WritePointerOffsets(DWORD address, const std::vector<DWORD> &offsetsList, const T &value);
+        bool WritePointerOffsets(DWORD address, const std::vector<DWORD> &offsets, const T &value);
 
         // Reading and writing strings.
         std::string ReadString(DWORD address, size_t size);
@@ -126,12 +126,11 @@ namespace GTLIBC
 // Cheat Engine variables. - Public
 #ifdef GT_USE_CE_PARSER
         CheatTable ReadCheatTable(const std::string &cheatTableFile, int entries = -1);
+        void AddCheatTableEntry(const std::string &description, const std::string &dataType, const DWORD address,
+                        const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
+                        const std::string hotkeyValue);
         void PrintCheatTable();
         void ReadCheatTableEntries();
-        template <typename T>
-        void AddCheatEntry(const std::string &description, const std::string &dataType, const DWORD address,
-                           const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
-                           T hotkeyValue);
         void ActivateCheatTableEntries(const std::vector<int> &cheatEntryIndex);
         void ExecuteCheatTable();
 #endif
@@ -140,8 +139,8 @@ namespace GTLIBC
 // Cheat Engine variables. - Private
 #ifdef GT_USE_CE_PARSER
         void PrintCheatValue(const DataType &value);
-        DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList = {});
-        DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList);
+        DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsets = {});
+        DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsets);
         bool IsValidCheatTable(const std::string &xmlData);
         void PrintCheatTableMenu();
         template <typename T>

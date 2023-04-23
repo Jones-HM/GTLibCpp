@@ -40,7 +40,7 @@ GTLibc::~GTLibc()
     g_GTLibc = nullptr;
 }
 
-/* 
+/*
 --------------------------------------------------------------------------------
 ------------------------------ GTLibc Functions --------------------------------
 --------------------------------------------------------------------------------
@@ -197,7 +197,6 @@ T GTLibc::ReadAddressOffsets(DWORD address, const std::vector<DWORD> &offsets)
 {
     AddLog("ReadAddressOffsets", "Trying to read address with offsets: " + to_hex_string(address));
 
-    // Add log all the values of the offsets
     std::ostringstream oss;
     for (auto d : offsets)
         oss << to_hex_string(d) << ",";
@@ -439,7 +438,7 @@ template <typename T>
 T GTLibc::ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsets)
 {
     AddLog("ReadPointerOffsets", "Trying to read pointer at base address: " + to_hex_string(address) + " with offsets size: " + std::to_string(offsets.size()));
-    // Add log the values of offsets iterate all items in offsetsList
+
     std::ostringstream oss;
     for (auto d : offsets)
         oss << std::hex << to_hex_string(d) << ",";
@@ -826,7 +825,7 @@ bool GTLibc::IsKeyToggled(int keycode)
     return false;
 }
 
-/* 
+/*
 --------------------------------------------------------------------------------
 ------------------------- CheatTable Public Functions --------------------------
 --------------------------------------------------------------------------------
@@ -872,7 +871,6 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
     return CheatTable();
 }
 
-
 /*
 @brief Execute the cheat table and run it as Generic trainer.
 @param None
@@ -885,15 +883,15 @@ void GTLibc::ExecuteCheatTable()
     for (auto &entry : g_CheatTable.cheatEntries)
     {
         // Resolving the address with offsets.
-        std::vector<DWORD> offsetsSorted = entry->Offsets;
-        std::reverse(offsetsSorted.begin(), offsetsSorted.end());
+        std::vector<DWORD> offsets = entry->Offsets;
+        std::reverse(offsets.begin(), offsets.end());
         AddLog("ExecuteCheatTable", "Trying to resolve address for cheat entry: " + entry->Description);
         DWORD address = 0;
 
         // Update the address in the cheat table.
         if (entry->Address != 0)
         {
-            address = ResolveAddressGeneric(entry->Address, offsetsSorted);
+            address = ResolveAddressGeneric(entry->Address, offsets);
             entry->Address = address;
         }
         else
@@ -953,7 +951,6 @@ void GTLibc::ExecuteCheatTable()
     {
         for (auto &entry : g_CheatTable.cheatEntries)
         {
-            //std::cout << "Des : " << entry->Description << " Addr : " << to_hex_string(entry->Address) << std::endl;
             if (HotKeysDown(entry->HotkeyIds))
             {
                 ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
@@ -980,22 +977,19 @@ void GTLibc::ExecuteCheatTable()
  * @return void
  *
  */
-template <typename T>
-void GTLibc::AddCheatEntry(const std::string &description, const std::string &dataType, const DWORD address,
-                           const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
-                           T hotkeyValue)
+void GTLibc::AddCheatTableEntry(const std::string &description, const std::string &dataType, const DWORD address, const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction, const std::string hotkeyValue)
 {
     int id = g_CheatTable.cheatEntries.size();
-    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, std::to_string(hotkeyValue), 0)};
+    const HOTKEYS hotkey = {make_tuple(hotkeyAction, hotkeys, hotkeyValue, 0)};
     g_CheatTable.AddCheatEntry(description, id, dataType, address, offsets, hotkey);
 }
 
 /*
-* @brief Activate cheat table entries from cheat table
-* @param cheatEntryIds - Vector of cheat entry IDs
-* @return void
-*
-*/
+ * @brief Activate cheat table entries from cheat table
+ * @param cheatEntryIds - Vector of cheat entry IDs
+ * @return void
+ *
+ */
 
 void GTLibc::ActivateCheatTableEntries(const std::vector<int> &cheatEntryIds)
 {
@@ -1085,7 +1079,7 @@ void GTLibc::ReadCheatTableEntries()
     }
 }
 
-/* 
+/*
 --------------------------------------------------------------------------------
 ------------------ CheatTable Private Functions --------------------------------
 --------------------------------------------------------------------------------
@@ -1096,7 +1090,13 @@ void GTLibc::PrintCheatTableMenu()
     int cheatIndex = 1;
 
     // Loop through all the cheat entries.
-    std::cout << "Index. "<< "\t" << "Description" << "\t" << "Action" << "\t" << "Hotkeys" << std::endl;
+    std::cout << "Index. "
+              << "\t"
+              << "Description"
+              << "\t"
+              << "Action"
+              << "\t"
+              << "Hotkeys" << std::endl;
 
     for (auto &entry : g_CheatTable.cheatEntries)
     {
@@ -1138,7 +1138,7 @@ template <typename T>
 void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_IncreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
-  
+
     if constexpr (std::is_same_v<T, std::string>)
     {
         std::string currentValue = ReadString(address, value.length());
@@ -1204,20 +1204,26 @@ void GTLibc::ExecuteCheatActionType(const std::string &cheatAction, DWORD &addre
     }
 }
 
-void GTLibc::ExecuteCheatActionType(const std::string& cheatAction, DWORD& address, const std::string& value, const std::string& variableType)
+void GTLibc::ExecuteCheatActionType(const std::string &cheatAction, DWORD &address, const std::string &value, const std::string &variableType)
 {
     AddLog("ExecuteCheatActionType", "Trying to execute cheat action: " + cheatAction + " at address: " + to_hex_string(address) + " with value: " + value + " of type: " + variableType);
-    
-    const std::map<std::string, std::function<void(const std::string&, DWORD&, const std::string&)>> typeMap =
-    {
-        { CheatTypes.Byte, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint8_t>(action, addr, val); } },
-        { CheatTypes.Short, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint16_t>(action, addr, val); } },
-        { CheatTypes.Integer, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint32_t>(action, addr, val); } },
-        { CheatTypes.Long, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::uint64_t>(action, addr, val); } },
-        { CheatTypes.Float, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<float>(action, addr, val); } },
-        { CheatTypes.Double, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<double>(action, addr, val); } },
-        { CheatTypes.String, [&](const std::string& action, DWORD& addr, const std::string& val) { ExecuteCheatActionType<std::string>(action, addr, val); } }
-    };
+
+    const std::map<std::string, std::function<void(const std::string &, DWORD &, const std::string &)>> typeMap =
+        {
+            {CheatTypes.Byte, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<std::uint8_t>(action, addr, val); }},
+            {CheatTypes.Short, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<std::uint16_t>(action, addr, val); }},
+            {CheatTypes.Integer, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<std::uint32_t>(action, addr, val); }},
+            {CheatTypes.Long, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<std::uint64_t>(action, addr, val); }},
+            {CheatTypes.Float, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<float>(action, addr, val); }},
+            {CheatTypes.Double, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<double>(action, addr, val); }},
+            {CheatTypes.String, [&](const std::string &action, DWORD &addr, const std::string &val)
+             { ExecuteCheatActionType<std::string>(action, addr, val); }}};
 
     auto iter = typeMap.find(variableType);
     if (iter != typeMap.end())
@@ -1231,7 +1237,7 @@ void GTLibc::ExecuteCheatActionType(const std::string& cheatAction, DWORD& addre
     }
 }
 
-//Helper function to convert any type to string.
+// Helper function to convert any type to string.
 template <typename T>
 auto ValueToString(const T &value)
 {
@@ -1253,8 +1259,7 @@ void GTLibc::ExecuteCheatActionForType(const string &cheatAction, DWORD &address
         std::visit([this, &cheatAction, &address, &variableType](auto &&arg)
                    {
                        auto valueStr = ValueToString(arg);
-                       ExecuteCheatActionType(cheatAction, address, valueStr, variableType);
-                   },
+                       ExecuteCheatActionType(cheatAction, address, valueStr, variableType); },
                    value);
     }
     catch (const std::exception &e)
@@ -1278,24 +1283,24 @@ bool GTLibc::IsValidCheatTable(const std::string &xmlData)
     return true;
 }
 
-DataType GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsetsList)
+DataType GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsets)
 {
-    static const std::unordered_map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
+    static const std::map<std::string, std::function<DataType(DWORD, const std::vector<DWORD> &)>> typeMap =
         {
-            {"Byte", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Byte, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<std::uint8_t>(addr) : ReadAddress<std::uint8_t>(ResolveAddressGeneric(addr, offs)); }},
-            {"2 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Short, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<std::uint16_t>(addr) : ReadAddress<std::uint16_t>(ResolveAddressGeneric(addr, offs)); }},
-            {"4 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Integer, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<std::uint32_t>(addr) : ReadAddress<std::uint32_t>(ResolveAddressGeneric(addr, offs)); }},
-            {"8 Bytes", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Long, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<std::uint64_t>(addr) : ReadAddress<std::uint64_t>(ResolveAddressGeneric(addr, offs)); }},
-            {"Float", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Float, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<float>(addr) : ReadAddress<float>(ResolveAddressGeneric(addr, offs)); }},
-            {"Double", [this](DWORD addr, const std::vector<DWORD> &offs)
+            {CheatTypes.Double, [this](DWORD addr, const std::vector<DWORD> &offs)
              { return offs.empty() ? ReadAddress<double>(addr) : ReadAddress<double>(ResolveAddressGeneric(addr, offs)); }},
-            {"String", [this](DWORD addr, const std::vector<DWORD> &offs)
-             { return offs.empty() ? std::string(ReadString(addr, 0xFF)) : std::string(ReadString(ResolveAddressGeneric(addr, offs), 0xFF)); }},
+            {CheatTypes.String, [this](DWORD addr, const std::vector<DWORD> &offs)
+             { return offs.empty() ? std::string(ReadString(addr, MAX_PATH)) : std::string(ReadString(ResolveAddressGeneric(addr, offs), MAX_PATH)); }},
         };
 
     const auto it = typeMap.find(dataType);
@@ -1304,14 +1309,14 @@ DataType GTLibc::ReadAddressGeneric(const std::string &dataType, DWORD address, 
         AddLog("ReadAddressGeneric", "Invalid data type specified: " + dataType);
         return {};
     }
-    return it->second(address, offsetsList);
+    return it->second(address, offsets);
 }
 
-DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsetsList)
+DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsets)
 {
     AddLog("ResolveAddressGeneric", "Parameters: " + to_hex_string(address) + " " + to_hex_string(gameBaseAddress));
 
-    if (offsetsList.size() == 0)
+    if (offsets.size() == 0)
     {
         AddLog("ResolveAddressGeneric", "No offsets provided, returning address: " + to_hex_string(address));
         return address;
@@ -1322,27 +1327,26 @@ DWORD GTLibc::ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &off
     DWORD result = ReadPointerOffset<DWORD>(gameBaseAddress, staticAddress);
     AddLog("ResolveAddressGeneric", "Startred resolving address: " + to_hex_string(result));
 
-    if (offsetsList.size() > 1)
+    if (offsets.size() > 1)
     {
-        for (size_t i = 0; i < offsetsList.size() - 1; ++i)
+        for (size_t i = 0; i < offsets.size() - 1; ++i)
         {
-            result = ReadPointerOffset<DWORD>(result, offsetsList[i]);
+            result = ReadPointerOffset<DWORD>(result, offsets[i]);
         }
     }
 
     // Add the last offset to the result
-    result += offsetsList.back();
+    result += offsets.back();
     AddLog("ResolveAddressGeneric", "Resolved address: " + to_hex_string(result));
     return result;
 }
 #endif
 
-/* 
+/*
 --------------------------------------------------------------------------------
 ------------------ GTLibc Private Functions ------------------------------------
 --------------------------------------------------------------------------------
 */
-
 
 void GTLibc::AddLog(const std::string &methodName, const std::string &message)
 {
@@ -1383,7 +1387,7 @@ void GTLibc::ShowInfo(const std::string &infoMessage)
     MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
 }
 
-// Create method to Execute system commands and return the output.
+// Method to Execute system commands.
 std::string GTLibc::ShellExec(const std::string &cmdArgs, bool runAsAdmin, bool waitForExit, const std::string &shell)
 {
     std::string command;
@@ -1515,7 +1519,24 @@ std::string GTLibc::GetArchitectureString(WORD wProcessorArchitecture)
     }
 }
 
-// Create method that returns Keysname using KeyCodeToName method and takes parameter as vector of keys in int format.
+// Method to convert single keycode to Key name.
+std::string GTLibc::KeyCodeToName(int keyCode)
+{
+    // Map the key code to a scan code.
+    UINT scanCode = MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
+    if (scanCode == 0)
+        return std::string();
+
+    // Map the scan code to a key name.
+    char keyName[256];
+    int result = GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName));
+    if (result == 0)
+        return std::string();
+
+    return std::string(keyName);
+}
+
+// Method to convert multiple keycode to Key name.
 std::string GTLibc::GetHotKeysName(const std::vector<int> &keys)
 {
     std::string hotkeysName = "";
@@ -1589,21 +1610,4 @@ void GTLibc::PrintCheatValue(const DataType &value)
     std::visit([](const auto &item)
                { std::cout << "Value: " << item << std::endl; },
                value);
-}
-
-// Create a method to convert keycodes to Key names
-std::string GTLibc::KeyCodeToName(int keyCode)
-{
-    // Map the key code to a scan code.
-    UINT scanCode = MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
-    if (scanCode == 0)
-        return std::string();
-
-    // Map the scan code to a key name.
-    char keyName[256];
-    int result = GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName));
-    if (result == 0)
-        return std::string();
-
-    return std::string(keyName);
 }
