@@ -14,11 +14,8 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     // Read the cheat table file
     gtlibc.ReadCheatTable(cheatTableFile);
 
-    // Add the cheat entries
-    const std::vector<int> hotkeys = {17, 77}; // 17 = CTRL key, 77 = M key
-
     // Add the cheat entry for Armor
-    gtlibc.AddCheatTableEntry("Armor", CheatType.Integer, 0x07290BC8, {}, hotkeys, CheatAction.SetValue, "150");
+    gtlibc.AddCheatTableEntry("Armor", CheatTypes.Integer, 0x07290BC8, {}, {VK_CONTROL,'M'}, CheatActions.SetValue, "150");
 
     // Print the cheat table
     if (printCheat)
