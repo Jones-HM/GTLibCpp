@@ -3,7 +3,7 @@
 // Define this macro to use the CE parser.
 #define GT_USE_CE_PARSER
 
-#include "GTLibc.h"
+#include "GTLibc.hpp"
 
 using namespace GTLIBC;
 GTLibc gtlibc;
@@ -20,7 +20,7 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     // Print the cheat table
     if (printCheat)
     {
-        gtlibc.PrintCheatTable();
+        gtlibc.DisplayCheatTable();
     }
 
     // Read the cheat table entries.
@@ -38,9 +38,17 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     // Execute the cheat Table
     if (executeCheat)
     {
-        // Read the cheat table entries.
-        // gtlibc.ReadCheatTableEntries();
+        // Trainer with default values.
         gtlibc.ExecuteCheatTable();
+
+        // Exit the trainer with the key 'X' and Index, Description, Hotkeys set to true.
+        //gtlibc.ExecuteCheatTable(true,'X',true,true,false,true);
+
+        // Exit the trainer with F5 and Description and Hotkeys set to true.
+        // gtlibc.ExecuteCheatTable(true, VK_F5, false, true, false, true);
+
+        // Exit the trainer with Default Key and Description,Action and Hotkeys set to true.
+        // gtlibc.ExecuteCheatTable(false, EXIT_TRAINER_KEY, false, true, true, true);
     }
 }
 
@@ -48,10 +56,11 @@ int main()
 {
     // Finding the game process
     gtlibc.EnableLogs(true);
-    std::string gameName = "ac_client.exe";
+    std::string gameName = "ac_client";
     auto gameHandle = gtlibc.FindGameProcess(gameName);
 
-    std::cout << "Game found with Id " << gtlibc.GetProcessID() << " Name: " << gtlibc.GetGameName() << " Base Address: " << gtlibc.GetGameBaseAddress() << " Handle: " << gtlibc.GetGameHandle() << std::endl;
+     std::cout << "Game found with name and id : " << gameName << " " << gtlibc.GetProcessId() << std::endl;
+
 
     // Selecting the cheat table file.
     std::string cheatTableFile = "CheatTable/assaultcube.ct";

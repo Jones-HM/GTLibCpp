@@ -1,3 +1,10 @@
+/*
+Brief : GTLibc is a library designed to facilitate the creation of game trainers in C/C++.
+It offers a comprehensive set of methods that enable developers to develop simple game trainers for the Windows operating system using the Win32 API with ease.
+Notably, GTLibc exclusively employs Win32 API methods and eschews CRT methods as its primary aim is to operate exclusively on Windows systems and not to be portable to other operating systems such as Linux or Mac OS.
+GTLibc provides all the requisite methods necessary for game trainer development from the inception of the project to its completion.
+It streamlines the development process, making it less cumbersome for developers.
+*/
 #pragma once
 #ifndef GTLIBC_H
 #define GTLIBC_H
@@ -38,7 +45,7 @@
 
 // Including the CE Parser library.
 #ifdef GT_USE_CE_PARSER
-#include "CEParser.h"
+#include "CEParser.hpp"
 #endif
 
 /*Re-Defining standard constants*/
@@ -51,6 +58,7 @@
 // Helper macros
 #define to_hex_string(hex_val) (static_cast<std::stringstream const &>(std::stringstream() << std::uppercase << std::hex << hex_val)).str()
 using DataType = std::variant<std::uint8_t, std::uint16_t, std::uint32_t, std::uint64_t, float, double, std::string>;
+#define EXIT_TRAINER_KEY VK_F12 // Default exit trainer key is F12.
 
 namespace GTLIBC
 {
@@ -115,7 +123,7 @@ namespace GTLIBC
 
         // Game process and window information.
         std::string GetGameName();
-        DWORD GetProcessID();
+        DWORD GetProcessId();
         HANDLE GetGameHandle4mHWND(HWND hwnd);
         DWORD GetProcessID4mHWND(HWND hwnd);
         HANDLE GetGameHandle();
@@ -127,12 +135,12 @@ namespace GTLIBC
 #ifdef GT_USE_CE_PARSER
         CheatTable ReadCheatTable(const std::string &cheatTableFile, int entries = -1);
         void AddCheatTableEntry(const std::string &description, const std::string &dataType, const DWORD address,
-                        const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
-                        const std::string hotkeyValue);
-        void PrintCheatTable();
+                                const std::vector<DWORD> &offsets, const std::vector<int> &hotkeys, const std::string &hotkeyAction,
+                                const std::string hotkeyValue);
+        void DisplayCheatTable(bool showMenuIndex = true, bool showMenuDescription = true, bool showMenuAction = false, bool showMenuHotkeys = true, bool showMenuValue = false);
         void ReadCheatTableEntries();
         void ActivateCheatTableEntries(const std::vector<int> &cheatEntryIndex);
-        void ExecuteCheatTable();
+        void ExecuteCheatTable(bool showTrainerOutput = false, int exitTrainerKey = EXIT_TRAINER_KEY, bool showMenuIndex = true, bool showMenuDescription = true, bool showMenuAction = false, bool showMenuHotkeys = true);
 #endif
 
     private:
@@ -142,7 +150,7 @@ namespace GTLIBC
         DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsets = {});
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsets);
         bool IsValidCheatTable(const std::string &xmlData);
-        void PrintCheatTableMenu();
+        void DisplayCheatTableMenu(bool showIndex = true, bool showDescription = true, bool showAction = false, bool showHotkeys = true, int exitTrainerKey = EXIT_TRAINER_KEY);
         template <typename T>
         void ExecuteCheatAction(const std::string &cheatAction, DWORD &address, const T &value);
         void ExecuteCheatActionForType(const std::string &cheatAction, DWORD &address, DataType &value, const string &variableType);
@@ -186,6 +194,8 @@ namespace GTLIBC
         bool enableLogs;
         DWORD gameBaseAddress;
         std::string logFile;
+        bool showTrainerOutput;
+        int cheatEntryId;
     };
     inline GTLibc *g_GTLibc{};
 #ifdef GT_USE_CE_PARSER

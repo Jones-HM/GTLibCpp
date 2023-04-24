@@ -1,4 +1,5 @@
-#include "GTLibc.h"
+#define GT_USE_CE_PARSER
+#include "GTLibc.hpp"
 using namespace GTLIBC;
 
 // Constructors and Destructors
@@ -106,17 +107,18 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
             if (!lstrcmpi(pe.szExeFile, gameNameExe.c_str()))
             {
                 CloseHandle(hSnapshot);
-                processId = pe.th32ProcessID;
-                gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+                this->gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe.th32ProcessID);
 
                 /*set current process info.*/
                 this->gameName = gameName;
                 this->processId = pe.th32ProcessID;
-                this->gameWindow = FindGameWindow(gameName);
+                this->gameWindow = FindGameWindow(gameName); // Only works in Game name is same as window name.
+                this->gameBaseAddress = GetGameBaseAddress();
                 AddLog("FindGameProcess", "Game process found: " + gameName);
                 AddLog("FindGameProcess", "Game process id: " + to_hex_string(processId));
                 AddLog("FindGameProcess", "Game process handle: " + to_hex_string(gameHandle));
                 AddLog("FindGameProcess", "Game window handle: " + to_hex_string(gameWindow));
+                AddLog("FindGameProcess", "Game base address: " + to_hex_string(gameBaseAddress));
 
                 // Check game trainer architecture.
                 CheckGameTrainerArch();
@@ -613,9 +615,9 @@ std::string GTLibc::GetGameName()
  *
  */
 
-DWORD GTLibc::GetProcessID()
+DWORD GTLibc::GetProcessId()
 {
-    AddLog("GetProcessID", "Trying to get process ID");
+    AddLog("GetProcessId", "Trying to get process ID");
     try
     {
         if (this->processId != 0)
@@ -624,12 +626,12 @@ DWORD GTLibc::GetProcessID()
         }
         else
         {
-            AddLog("GetProcessID", "Error: process ID is 0");
+            AddLog("GetProcessId", "Error: process ID is 0");
         }
     }
     catch (const std::runtime_error &e)
     {
-        AddLog("GetProcessID", "Error: " + std::string(e.what()));
+        AddLog("GetProcessId", "Error: " + std::string(e.what()));
         ShowError(e.what());
         // Handle error and return default value as needed
         return 0;
@@ -675,7 +677,7 @@ HANDLE GTLibc::GetGameHandle()
  */
 DWORD GTLibc::GetGameBaseAddress()
 {
-    AddLog("GetGameBaseAddress", "Trying to get game base address");
+    AddLog("GetGameBaseAddress", "Trying to get game base address of process ID: " + std::to_string(this->processId));
     try
     {
         MODULEENTRY32 module;
@@ -873,11 +875,15 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 
 /*
 @brief Execute the cheat table and run it as Generic trainer.
-@param None
+@param showTrainerOutput - Show trainer output in console
+@param showMenuIndex - Show menu index in console
+@param showMenuDescription - Show menu description in console
+@param showMenuAction - Show menu action in console
+@param showMenuHotkeys - Show menu hotkeys in console
 @return None
 */
 
-void GTLibc::ExecuteCheatTable()
+void GTLibc::ExecuteCheatTable(bool showTrainerOutput,int exitTrainerKey, bool showMenuIndex, bool showMenuDescription, bool showMenuAction, bool showMenuHotkeys)
 {
     // 1. Resolve the address and values.
     for (auto &entry : g_CheatTable.cheatEntries)
@@ -943,23 +949,29 @@ void GTLibc::ExecuteCheatTable()
                                                    { return entry->HotkeyIds.size() == 0; }),
                                     g_CheatTable.cheatEntries.end());
 
-    // 3. Print Cheat table menu.
-    PrintCheatTableMenu();
+    // 3. Display Cheat table menu.
+    DisplayCheatTableMenu(showMenuIndex, showMenuDescription, showMenuAction, showMenuHotkeys,exitTrainerKey);
+    this->showTrainerOutput = showTrainerOutput;
 
     // 4. Execute the cheat table.
     while (true)
     {
-        for (auto &entry : g_CheatTable.cheatEntries)
+        int cheatIndex = 0;
+        auto it = std::find_if(std::begin(g_CheatTable.cheatEntries), std::end(g_CheatTable.cheatEntries),
+                               [&](const std::shared_ptr<CheatEntry> &entry)
+                               { return HotKeysDown(entry->HotkeyIds); });
+
+        if (it != std::end(g_CheatTable.cheatEntries))
         {
-            if (HotKeysDown(entry->HotkeyIds))
-            {
-                ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
-            }
-            if (IsKeyToggled(VK_F5))
-            {
-                break;
-            }
+            auto entry = *it;
+            cheatEntryId = std::distance(std::begin(g_CheatTable.cheatEntries), it);
+            ExecuteCheatActionForType(entry->Action, entry->Address, entry->Value, entry->VariableType);
         }
+        else if (IsKeyToggled(exitTrainerKey))
+        {
+            break;
+        }
+
         // sleep for 100 ms
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -1005,38 +1017,62 @@ void GTLibc::ActivateCheatTableEntries(const std::vector<int> &cheatEntryIds)
 }
 
 /*
- * @brief Print current cheat table values.
+ * @brief Display current cheat table values.
  * @return void
  *
  */
 
-void GTLibc::PrintCheatTable()
+void GTLibc::DisplayCheatTable(bool showMenuIndex, bool showMenuDescription, bool showMenuAction, bool showMenuHotkeys, bool showMenuValue)
 {
     for (auto &entry : g_CheatTable.cheatEntries)
     {
-        std::cout << "Description: " << entry->Description << std::endl;
-        std::cout << "ID: " << entry->Id << std::endl;
-        std::cout << "VariableType: " << entry->VariableType << std::endl;
-        std::cout << "Address: " << entry->Address << std::endl;
-        std::cout << "Offsets: ";
-        for (auto &offset : entry->Offsets)
+        if (showMenuDescription)
         {
-            std::cout << offset << " ";
+            std::cout << "Description: " << entry->Description << std::endl;
         }
-        std::cout << std::endl;
-        std::cout << "Hotkeys: " << std::endl;
-        for (auto &hotkey : entry->Hotkeys)
+
+        if (showMenuIndex)
         {
-            std::cout << "  Action: " << std::get<0>(hotkey) << std::endl;
-            std::cout << "  Keys: [";
-            for (auto &key : std::get<1>(hotkey))
+            std::cout << "Index: " << entry->Id << std::endl;
+        }
+
+        if (showMenuAction)
+        {
+            std::cout << "VariableType: " << entry->VariableType << std::endl;
+            std::cout << "Address: " << entry->Address << std::endl;
+            std::cout << "Offsets: ";
+            for (auto &offset : entry->Offsets)
             {
-                std::cout << KeyCodeToName(key) << " ";
+                std::cout << offset << " ";
             }
-            std::cout << "]" << std::endl;
-            std::cout << "  Value: " << std::get<2>(hotkey) << std::endl;
-            std::cout << "  ID: " << std::get<3>(hotkey) << std::endl;
+            std::cout << std::endl;
         }
+
+        if (showMenuHotkeys || showMenuAction || showMenuValue)
+        {
+            if (showMenuHotkeys)
+                std::cout << "Hotkeys: " << std::endl;
+
+            for (auto &hotkey : entry->Hotkeys)
+            {
+                if (showMenuAction)
+                    std::cout << "  Action: " << std::get<0>(hotkey) << std::endl;
+                if (showMenuHotkeys)
+                {
+                    std::cout << "  Keys: [";
+                    for (auto &key : std::get<1>(hotkey))
+                    {
+                        std::cout << KeyCodeToName(key) << " ";
+                    }
+                    std::cout << "]" << std::endl;
+                }
+                if (showMenuValue)
+                    std::cout << "  Value: " << std::get<2>(hotkey) << std::endl;
+                if (showMenuHotkeys)
+                    std::cout << "  ID: " << std::get<3>(hotkey) << std::endl;
+            }
+        }
+
         std::cout << std::endl;
     }
 }
@@ -1085,45 +1121,70 @@ void GTLibc::ReadCheatTableEntries()
 --------------------------------------------------------------------------------
 */
 
-void GTLibc::PrintCheatTableMenu()
+void GTLibc::DisplayCheatTableMenu(bool showIndex, bool showDescription, bool showAction, bool showHotkeys,int exitTrainerKey)
 {
     int cheatIndex = 1;
 
-    // Loop through all the cheat entries.
-    std::cout << "Index. "
-              << "\t"
-              << "Description"
-              << "\t"
-              << "Action"
-              << "\t"
-              << "Hotkeys" << std::endl;
+    // Print column headers based on parameter values
+    if (showIndex)
+        std::cout << "Index.\t";
+    if (showDescription)
+        std::cout << "Description\t";
+    if (showAction)
+        std::cout << "Action\t";
+    if (showHotkeys)
+        std::cout << "Hotkeys\t";
+    std::cout << std::endl;
 
+    // Loop through all the cheat entries.
     for (auto &entry : g_CheatTable.cheatEntries)
     {
-        // Print the description.
-        std::cout << cheatIndex << ". \t" << entry->Description << "\t";
-
-        // Loop through all the hotkeys.
-        for (auto &hotkey : entry->Hotkeys)
+        if (showIndex)
         {
-            std::cout << " " << std::get<0>(hotkey) << "\t";
-            std::cout << " [";
-            for (auto &key : std::get<1>(hotkey))
-            {
-                std::cout << KeyCodeToName(key) << " ";
-            }
-            std::cout << "] ";
+            std::cout << cheatIndex << ".\t";
         }
-        std::cout << "\n"
-                  << std::endl;
+
+        if (showDescription)
+        {
+            std::cout << entry->Description << "\t";
+        }
+
+        if (showAction)
+        {
+            std::cout << entry->Action << "\t";
+        }
+
+        if (showHotkeys || showAction)
+        {
+            // Loop through all the hotkeys.
+            for (auto &hotkey : entry->Hotkeys)
+            {
+                if (showAction)
+                    std::cout << " " << std::get<0>(hotkey) << "\t";
+                if (showHotkeys)
+                {
+                    std::cout << "\t [";
+                    for (auto &key : std::get<1>(hotkey))
+                    {
+                        std::cout << KeyCodeToName(key) << " ";
+                    }
+                    std::cout << "] ";
+                }
+            }
+        }
+        std::cout << std::endl;
         cheatIndex++;
     }
+    std::cout << "Exit Trainer " << "\t - " << KeyCodeToName(exitTrainerKey) << std::endl;
 }
 
 template <typename T>
 void GTLibc::CheatAction_SetValue(DWORD address, T value)
 {
     AddLog("CheatAction_SetValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    if (showTrainerOutput && cheatEntryId != -1)
+        std::cout << g_CheatTable.cheatEntries[cheatEntryId]->Description << " - setting value to " << value << std::endl;
+
     if constexpr (std::is_same_v<T, std::string>)
     {
         WriteString(address, value);
@@ -1138,6 +1199,8 @@ template <typename T>
 void GTLibc::CheatAction_IncreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_IncreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    if (showTrainerOutput && cheatEntryId != -1)
+        std::cout << g_CheatTable.cheatEntries[cheatEntryId]->Description << " - setting value to " << value << std::endl;
 
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -1155,6 +1218,8 @@ template <typename T>
 void GTLibc::CheatAction_DecreaseValue(DWORD address, T value)
 {
     AddLog("CheatAction_DecreaseValue", "trying to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+    if (showTrainerOutput && cheatEntryId != -1)
+        std::cout << g_CheatTable.cheatEntries[cheatEntryId]->Description << " - setting value to " << value << std::endl;
 
     if constexpr (std::is_same_v<T, std::string>)
     {
@@ -1457,7 +1522,7 @@ bool GTLibc::CheckGameTrainerArch()
     SYSTEM_INFO siRemote = {};
     GetNativeSystemInfo(&siCurrent);
 
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetProcessId(this->gameHandle));
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,this->processId);
     if (hSnapshot != INVALID_HANDLE_VALUE)
     {
         MODULEENTRY32 me = {};

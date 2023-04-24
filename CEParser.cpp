@@ -1,5 +1,5 @@
-#include "CEParser.h"
-#include "GTLibc.h"
+#include "CEParser.hpp"
+#include "GTLibc.hpp"
 
 using namespace GTLIBC;
 
@@ -84,8 +84,8 @@ HOTKEYS CheatTable::ParseHotkeys(const string &hotkeys)
             keys.push_back(stoul((*j)[1].str()));
         }
 
-        string value = (*i)[5].str();      // Updated index
-        int id = std::stoi((*i)[6].str()); // Updated index
+        string value = (*i)[5].str();
+        int id = std::stoi((*i)[6].str());
         result.push_back(make_tuple(action, keys, value, id));
     }
     return result;
