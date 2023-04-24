@@ -1,4 +1,3 @@
-#define GT_USE_CE_PARSER
 #include "GTLibc.hpp"
 using namespace GTLIBC;
 
@@ -876,6 +875,7 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 /*
 @brief Execute the cheat table and run it as Generic trainer.
 @param showTrainerOutput - Show trainer output in console
+@param exitTrainerKey - Exit trainer key. - Ex : VK_F1
 @param showMenuIndex - Show menu index in console
 @param showMenuDescription - Show menu description in console
 @param showMenuAction - Show menu action in console
@@ -969,6 +969,7 @@ void GTLibc::ExecuteCheatTable(bool showTrainerOutput,int exitTrainerKey, bool s
         }
         else if (IsKeyToggled(exitTrainerKey))
         {
+            std::cout << "Trainer was generated using GTLibCpp @ HeavenHM" << std::endl;
             break;
         }
 
@@ -1103,14 +1104,14 @@ void GTLibc::ReadCheatTableEntries()
             }
 
             auto result = ReadAddressGeneric(entry->VariableType, address, offsetsSorted);
-            PrintCheatValue(result);
+            DisplayCheatValue(result);
         }
 
         if (offsets.size() == 0 && address != 0)
         {
             std::cout << "Description: " << entry->Description << " ";
             auto result = ReadAddressGeneric(entry->VariableType, address);
-            PrintCheatValue(result);
+            DisplayCheatValue(result);
         }
     }
 }
@@ -1670,7 +1671,7 @@ std::string GTLibc::ValueToString(const T &value)
     }
 }
 
-void GTLibc::PrintCheatValue(const DataType &value)
+void GTLibc::DisplayCheatValue(DataType &value)
 {
     std::visit([](const auto &item)
                { std::cout << "Value: " << item << std::endl; },

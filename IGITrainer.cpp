@@ -1,39 +1,45 @@
-#include "GTLibc.cpp"
-#include <iostream>
-#include <vector>
-#include <chrono>
+/*
+Brief: IGI Trainer +3 (Unlimited Health, Ammo, Clips).
+It is a simple trainer for the game IGI 1 using the GTLibc library.
+Author: HeavenHM
+Date: 24/04/2023
+*/
+
+// Include the GTLibc header file.
+#include "GTLibc.hpp"
+using namespace GTLIBC;
 
 GTLibc gtlibc(true);
-DWORD game_base_address = 0x00400000;
+DWORD gameBaseAddress;
 
 DWORD GetClipsAddress()
 {
-    const DWORD clips_static_pointer = (DWORD)0x00671890;
-    const std::vector<DWORD> clips_addr_off = {0x0, 0x4C4};
+    const DWORD clipsStaticPointer = (DWORD)0x00671890;
+    const std::vector<DWORD> clipsAddrOff = {0x0, 0x4C4};
 
-    DWORD clips_base_pointer = gtlibc.ReadPointerOffset<DWORD>(game_base_address, clips_static_pointer);
-    DWORD clips_address = gtlibc.ReadPointerOffsets<DWORD>(clips_base_pointer, clips_addr_off) + 0x144;
-    return clips_address;
+    DWORD clipsBasePointer = gtlibc.ReadPointerOffset<DWORD>(gameBaseAddress, clipsStaticPointer);
+    DWORD clipsAddress = gtlibc.ReadPointerOffsets<DWORD>(clipsBasePointer, clipsAddrOff) + 0x144;
+    return clipsAddress;
 }
 
 DWORD GetHumanBaseAddress()
 {
-    const DWORD human_static_pointer = (DWORD)0x0016E210;
-    const std::vector<DWORD> human_address_offsets = {0x8, 0x7CC, 0x14};
+    const DWORD humanStaticPointer = (DWORD)0x0016E210;
+    const std::vector<DWORD> humanAddressOffsets = {0x8, 0x7CC, 0x14};
 
-    DWORD human_base_pointer = gtlibc.ReadPointerOffset<DWORD>(game_base_address, human_static_pointer);
-    DWORD human_base_address =  gtlibc.ReadPointerOffsets<DWORD>(human_base_pointer, human_address_offsets) + 0x348;
+    DWORD humanBasePointer = gtlibc.ReadPointerOffset<DWORD>(gameBaseAddress, humanStaticPointer);
+    DWORD humanBaseAddress =  gtlibc.ReadPointerOffsets<DWORD>(humanBasePointer, humanAddressOffsets) + 0x348;
 
-    return human_base_address;
+    return humanBaseAddress;
 }
 
 void SetAmmo()
 {
-    int unlimited_ammo = 0x7FFFFFFF;
-    DWORD weapon_base_address = GetHumanBaseAddress();
+    int unlimitedAmmo = 0x7FFFFFFF;
+    DWORD weaponBaseAddress = GetHumanBaseAddress();
 
-    std::vector<DWORD> weapons_offsets = {0x0, 0xC, 0x18, 0x24, 0x30, 0x3C, 0x48, 0x54, 0x60, 0x6C};
-    if (gtlibc.WriteAddressOffsets(weapon_base_address, weapons_offsets, unlimited_ammo))
+    std::vector<DWORD> weaponsOffsets = {0x0, 0xC, 0x18, 0x24, 0x30, 0x3C, 0x48, 0x54, 0x60, 0x6C};
+    if (gtlibc.WriteAddressOffsets(weaponBaseAddress, weaponsOffsets, unlimitedAmmo))
     {
         std::cout << "[+] Unlimited ammo enabled" << std::endl;
     }
@@ -41,10 +47,10 @@ void SetAmmo()
 
 void SetClips()
 {
-    int unlimited_clips = 0xFFFFFF;
-    DWORD clips_address = GetClipsAddress();
+    int unlimitedClips = 0xFFFFFF;
+    DWORD clipsAddress = GetClipsAddress();
 
-    if (gtlibc.WriteAddress(clips_address, unlimited_clips))
+    if (gtlibc.WriteAddress(clipsAddress, unlimitedClips))
     {
         std::cout << "[+] Unlimited clips enabled" << std::endl;
     }
@@ -52,10 +58,10 @@ void SetClips()
 
 void SetHealth()
 {
-    int unlimited_health = 0xFFFFFFFF;
-    DWORD health_address = GetHumanBaseAddress() - 0xF4;
-    std::cout << "Health address: " << to_hex_string(health_address) << std::endl;
-    if (gtlibc.WriteAddress(health_address, unlimited_health))
+    int unlimitedHealth = 0xFFFFFFFF;
+    DWORD healthAddress = GetHumanBaseAddress() - 0xF4;
+    std::cout << "Health address: " << to_hex_string(healthAddress) << std::endl;
+    if (gtlibc.WriteAddress(healthAddress, unlimitedHealth))
     {
         std::cout << "[+] Unlimited health enabled" << std::endl;
     }
@@ -71,6 +77,7 @@ int main()
 
     std::string gameName = "igi";
     gtlibc.FindGameProcess(gameName);
+    gameBaseAddress = gtlibc.GetGameBaseAddress();
 
     while (true)
     {

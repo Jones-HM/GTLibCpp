@@ -1,34 +1,42 @@
 /*
-Brief : GTLibc is a library designed to facilitate the creation of game trainers in C/C++.
+Brief : GTLibc is a library designed to facilitate the creation of game trainers in C++. with latest C++17 features.
 It offers a comprehensive set of methods that enable developers to develop simple game trainers for the Windows operating system using the Win32 API with ease.
 Notably, GTLibc exclusively employs Win32 API methods and eschews CRT methods as its primary aim is to operate exclusively on Windows systems and not to be portable to other operating systems such as Linux or Mac OS.
 GTLibc provides all the requisite methods necessary for game trainer development from the inception of the project to its completion.
 It streamlines the development process, making it less cumbersome for developers.
+
+Author : HeavenHM 
+Date :  24/04/2023
+GitHub : https://github.com/haseeb-heaven/GTLibCpp
+Version : 1.0.0
+License : MIT License
 */
+
+
 #pragma once
 #ifndef GTLIBC_H
 #define GTLIBC_H
 
 // Including the standard libraries
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <vector>
-#include <stdexcept>
-#include <ctime>
-#include <iomanip>
-#include <chrono>
-#include <fstream>
-#include <ostream>
-#include <regex>
-#include <variant>
-#include <thread>
-#include <optional>
-#include <type_traits>
-#include <array>
-#include <filesystem>
-#include <cstdint>
-#include <charconv>
+#include <iostream> // Provides basic input/output
+#include <string> // Provides string class
+#include <sstream> // Provides stringstream class
+#include <vector> // Provides vector class
+#include <stdexcept> // Provides exceptions
+#include <ctime> // Provides time functions
+#include <iomanip> // Provides functions for formatting output
+#include <chrono> // Provides high resolution clock
+#include <fstream> // Provides file stream classes
+#include <ostream> // Provides ostream class
+#include <regex> // Provides regular expression classes
+#include <variant> // Provides variant class
+#include <thread> // Provides thread class
+#include <optional> // Provides optional class
+#include <type_traits> // Provides type traits
+#include <array> // Provides array class
+#include <filesystem> // Provides filesystem classes
+#include <cstdint> // Provides integer types
+#include <charconv> // Provides character conversion
 
 /*Defining WIN32 Constants*/
 #define WINVER 0x0500       // Sets the minimum required platform to Windows 2000.
@@ -48,7 +56,7 @@ It streamlines the development process, making it less cumbersome for developers
 #include "CEParser.hpp"
 #endif
 
-/*Re-Defining standard constants*/
+// Re-Defining standard constants
 #if !defined(FILE_NAME) && !defined(LINE_NO) && !defined(FUNC_NAME)
 #define FILE_NAME __FILE__
 #define LINE_NO __LINE__
@@ -129,6 +137,7 @@ namespace GTLIBC
         HANDLE GetGameHandle();
         DWORD GetGameBaseAddress();
 
+        // Log methods.
         void EnableLogs(bool status);
 
 // Cheat Engine variables. - Public
@@ -144,9 +153,9 @@ namespace GTLIBC
 #endif
 
     private:
+            void DisplayCheatValue(DataType &value);
 // Cheat Engine variables. - Private
 #ifdef GT_USE_CE_PARSER
-        void PrintCheatValue(const DataType &value);
         DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsets = {});
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsets);
         bool IsValidCheatTable(const std::string &xmlData);
