@@ -153,9 +153,9 @@ namespace GTLIBC
 #endif
 
     private:
-            void DisplayCheatValue(DataType &value);
 // Cheat Engine variables. - Private
 #ifdef GT_USE_CE_PARSER
+        void DisplayCheatValue(DataType &value);
         DataType ReadAddressGeneric(const std::string &dataType, DWORD address, const std::vector<DWORD> &offsets = {});
         DWORD ResolveAddressGeneric(DWORD address, const std::vector<DWORD> &offsets);
         bool IsValidCheatTable(const std::string &xmlData);
@@ -212,4 +212,5 @@ namespace GTLIBC
 #endif
 } // namespace GTLibc
 
+#include "GTLibc.tpp"
 #endif
