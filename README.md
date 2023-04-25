@@ -19,31 +19,30 @@ for more information, see [ONLINE_USAGE.md](ONLINE_USAGE.md)
 
 ## Usage and Installation
 
-- To use GTLibc just include the `GTLibc.h` header file in your project.</br>
+- To use GTLibc just include the `GTLibc.h` header file in your project. </br>
 - To use the **[GTLibc-Generator]**, you need to install **[Cheat Engine]** and include the `GTLibc.h` header file in your project.</br>
   1. **Read** the **Cheat Engine** table file using this `gtlibc.ReadCheatTable("CheatTableFile.ct");` method.</br>
   2. **Activate** the **Cheat Entries** you want to use in the trainer using this `gtlibc.ActivateCheatTableEntries({0, 1, 2});` method.</br>
   3. **Execute** and **Generate** the trainer using this `gtlibc.ExecuteCheatTable();` method.</br>
 - To **compile** and **run** the file use `CppRunner.bat file_name.cpp`.</br>
-- Or to run manually use this command `g++ -std=c++17 -w -DGT_USE_CE_PARSER -o GenericTrainer.exe GenericTrainer.cpp GTLibc.cpp CEParser.cpp` note the flag `GT_USE_CE_PARSER` is important to use if compiling for CheatEngine.</br>
+- Or to run manually use this command `g++ -std=c++17 -w -DGT_USE_CE_PARSER -o GenericTrainer.exe GenericTrainer.cpp GTLibc.cpp CEParser.cpp` note the flag `GT_USE_CE_PARSER` is important to use if compiling for CheatEngine. You need to have **C++ 17 Compiler** _installed_ on your **machine**.</br>
 
 ## Features and Usages
 
 - Game **Process** and **Window** Detection.
-- Memory **Reading** and **Writing** with advanced **offset support**.
+- Memory **Reading** and **Writing** with advanced **pointer support**.
 - Hotkey Detection with **advanced support** for **multiple hotkeys**.
 - Using latest **C++ 17 features** for ease of use and readability.
 - No external dependencies - only the **Win32 API** and **Standard C++ Library**.
 - Generate Generic trainer using the **[GTLibc-Generator]**.
 - Advanced support for famous **Cheat Engine**.
-- Game Architecture Detection.
 
 ## Methods information and usages
 
 <table>
 <thead>
 <tr>
-<th>Function Name</th>
+<th>Method</th>
 <th>Description</th>
 <th>Example</th>
 <th>Signature</th>
