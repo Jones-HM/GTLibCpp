@@ -1,4 +1,3 @@
-#define GT_USE_CE_PARSER
 #include "GTLibc.hpp"
 using namespace GTLIBC;
 
@@ -134,10 +133,10 @@ HANDLE GTLibc::FindGameProcess(const std::string &gameName)
                 return this->gameHandle;
             }
         } while (Process32Next(hSnapshot, &pe));
+        // Set Last error to file not found.
+        SetLastError(ERROR_FILE_NOT_FOUND);
 
-        std::string errMsg = "Game process not found '" + gameName + "'";
-        AddLog("FindGameProcess", "Error: " + errMsg);
-        ShowErrorLog("FindGameProcess", errMsg);
+        throw std::runtime_error("Game process not found '" + gameName + "'\n" + GetLastErrorAsString());
     }
     catch (const std::exception &e)
     {

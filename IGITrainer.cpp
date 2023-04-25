@@ -28,7 +28,7 @@ DWORD GetHumanBaseAddress()
     const std::vector<DWORD> humanAddressOffsets = {0x8, 0x7CC, 0x14};
 
     DWORD humanBasePointer = gtlibc.ReadPointerOffset<DWORD>(gameBaseAddress, humanStaticPointer);
-    DWORD humanBaseAddress =  gtlibc.ReadPointerOffsets<DWORD>(humanBasePointer, humanAddressOffsets) + 0x348;
+    DWORD humanBaseAddress = gtlibc.ReadPointerOffsets<DWORD>(humanBasePointer, humanAddressOffsets) + 0x348;
 
     return humanBaseAddress;
 }
@@ -76,7 +76,13 @@ int main()
     std::cout << "F5 - Exit" << std::endl;
 
     std::string gameName = "igi";
-    gtlibc.FindGameProcess(gameName);
+    HANDLE gameHandle = gtlibc.FindGameProcess(gameName);
+
+    if (gameHandle == NULL)
+    {
+        return EXIT_FAILURE;
+    }
+
     gameBaseAddress = gtlibc.GetGameBaseAddress();
 
     while (true)
