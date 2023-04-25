@@ -26,7 +26,7 @@ T GTLibc::ReadAddress(DWORD address)
             AddLog("ReadAddress", "Read value: " + to_hex_string(value));
             return value;
         }
-        throw std::runtime_error("Failed to read address Error: " + GetLastErrorAsString());
+        throw std::runtime_error("Failed to read address \n" + GetLastErrorAsString());
     }
     catch (const std::runtime_error &e)
     {
@@ -58,7 +58,7 @@ bool GTLibc::WriteAddress(DWORD address, const T &value)
         {
             return true;
         }
-        throw std::runtime_error("Failed to write address Error: " + GetLastErrorAsString());
+        throw std::runtime_error("Failed to write address \n" + GetLastErrorAsString());
     }
     catch (const std::runtime_error &e)
     {

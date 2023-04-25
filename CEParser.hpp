@@ -87,7 +87,12 @@ namespace GTLIBC
         // Create default constructor and parameterized constructor with setting game base address.
         CheatTable() = default;
         CheatTable(DWORD gameBaseAddress) : gameBaseAddress(gameBaseAddress) {}
-
+        
+        bool IsEmpty() const
+        {
+            return cheatEntries.empty();
+        }
+        
         vector<std::shared_ptr<CheatEntry>> cheatEntries;
 
         void SetGameBaseAddress(DWORD gameBaseAddress)

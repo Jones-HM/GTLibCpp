@@ -52,8 +52,8 @@ for more information, see [ONLINE_USAGE.md](ONLINE_USAGE.md)
 <tr>
 <td>FindGameProcess</td>
 <td nowrap="">Finds the game process by its name.</td>
-<td>Bool found = FindGameProcess("GameName");</td>
-<td>Bool FindGameProcess(const std::string &amp;gameName);</td>
+<td>HANDLE handle = FindGameProcess("GameName");</td>
+<td>HANDLE FindGameProcess(const std::string &amp;gameName);</td>
 </tr>
 <tr>
 <td>FindGameWindow</td>

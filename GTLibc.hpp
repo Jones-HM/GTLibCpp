@@ -88,7 +88,7 @@ namespace GTLIBC
 
         // GTLibc public methods.
         // Find game process and window.
-        bool FindGameProcess(const std::string &gameName);
+        HANDLE FindGameProcess(const std::string &gameName);
         HWND FindGameWindow(const std::string &windowName);
 
         // Read and write memory.
@@ -186,6 +186,7 @@ namespace GTLIBC
         void ShowError(const std::string &errorMessage);
         void ShowWarning(const std::string &warningMessage);
         void ShowInfo(const std::string &infoMessage);
+        void ShowErrorLog(const std::string &methodName, const std::string &errorMessage);
         friend class CheatTable; // Make CheatTable class a friend of GTLibc class
 
         // Utility functions
@@ -202,6 +203,7 @@ namespace GTLIBC
         template <typename T>
         std::string GetDataTypeInfo(T type);
         std::string GetLastErrorAsString();
+        bool IsElevatedProcess();
 
         std::string gameName;
         HWND gameWindow;

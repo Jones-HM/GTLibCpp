@@ -50,11 +50,11 @@ GTLibc::~GTLibc()
 /*
  * @brief Find game process by name
  * @param gameName - Name of the game process
- * @return bool - True if game process found, false otherwise.
+ * @return Handle to the game process if found, else nullptr
  *
  */
 
-bool GTLibc::FindGameProcess(const std::string &gameName)
+HANDLE GTLibc::FindGameProcess(const std::string &gameName)
 {
     AddLog("FindGameProcess", "Trying to find game process: " + gameName);
 
@@ -85,21 +85,19 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
 
         if (hSnapshot == INVALID_HANDLE_VALUE)
         {
-            std::string errMsg = "Failed to create process snapshot - " + GetLastErrorAsString();
-            AddLog("FindGameProcess", "Error: " + errMsg);
-            ShowError(errMsg);
-            return false;
+            std::string errMsg = "Failed to create process snapshot\n" + GetLastErrorAsString();
+            ShowErrorLog("FindGameProcess", errMsg);
+            return nullptr;
         }
 
         pe.dwSize = sizeof(PROCESSENTRY32);
 
         if (!Process32First(hSnapshot, &pe))
         {
-            std::string errMsg = "Failed to get first process entry - " + GetLastErrorAsString();
-            AddLog("FindGameProcess", "Error: " + errMsg);
-            ShowError(errMsg.c_str());
+            std::string errMsg = "Failed to get first process entry\n" + GetLastErrorAsString();
+            ShowErrorLog("FindGameProcess", errMsg);
             CloseHandle(hSnapshot);
-            return false;
+            return nullptr;
         }
 
         do
@@ -109,35 +107,45 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
                 CloseHandle(hSnapshot);
                 this->gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pe.th32ProcessID);
 
+                if (this->gameHandle == NULL && pe.th32ProcessID > 0)
+                {
+                    BOOL isElevated = IsElevatedProcess();
+                    if (!isElevated)
+                    {
+                        CloseHandle(this->gameHandle);
+                        throw std::runtime_error("Try to run this program with Admin privileges\n" + GetLastErrorAsString());
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Handle could not be detected for specified process\n" + GetLastErrorAsString());
+                    }
+                }
+
                 /*set current process info.*/
                 this->gameName = gameName;
                 this->processId = pe.th32ProcessID;
                 this->gameWindow = FindGameWindow(gameName); // Only works in Game name is same as window name.
                 this->gameBaseAddress = GetGameBaseAddress();
-                AddLog("FindGameProcess", "Game process found: " + gameName);
-                AddLog("FindGameProcess", "Game process id: " + to_hex_string(processId));
-                AddLog("FindGameProcess", "Game process handle: " + to_hex_string(gameHandle));
-                AddLog("FindGameProcess", "Game window handle: " + to_hex_string(gameWindow));
-                AddLog("FindGameProcess", "Game base address: " + to_hex_string(gameBaseAddress));
+                AddLog("FindGameProcess", "Game: " + gameName + " Process id: " + to_hex_string(processId) +
+                                              " Handle: " + to_hex_string(gameHandle) + " WindowHandle: " + to_hex_string(gameWindow) + " Base address: " + to_hex_string(gameBaseAddress));
 
                 // Check game trainer architecture.
                 CheckGameTrainerArch();
-                return true;
+                return this->gameHandle;
             }
         } while (Process32Next(hSnapshot, &pe));
 
         std::string errMsg = "Game process not found '" + gameName + "'";
         AddLog("FindGameProcess", "Error: " + errMsg);
-        ShowError(errMsg);
+        ShowErrorLog("FindGameProcess", errMsg);
     }
     catch (const std::exception &e)
     {
-        AddLog("FindGameProcess", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("FindGameProcess", e.what());
     }
 
     CloseHandle(hSnapshot);
-    return false;
+    return this->gameHandle;
 }
 
 /*
@@ -166,10 +174,9 @@ std::string GTLibc::ReadString(DWORD address, size_t length)
     try
     {
         char *buffer = new char[length + 1];
-        if(ReadProcessMemory(gameHandle, (LPVOID)address, buffer, length, NULL) == 0)
+        if (ReadProcessMemory(gameHandle, (LPVOID)address, buffer, length, NULL) == 0)
         {
-            AddLog("ReadString", "Error: " + GetLastErrorAsString());
-            ShowError(GetLastErrorAsString());
+            ShowErrorLog("ReadString", "Error: failed to read string from address: " + to_hex_string(address) + "\n" + GetLastErrorAsString());
             return "";
         }
 
@@ -179,10 +186,9 @@ std::string GTLibc::ReadString(DWORD address, size_t length)
         AddLog("ReadString", "Return value: " + result);
         return result;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadString", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadString", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return "";
     }
@@ -202,19 +208,17 @@ bool GTLibc::WriteString(DWORD address, const std::string &value)
     AddLog("WriteString", "Trying to write string to address: " + to_hex_string(address));
     try
     {
-        if(WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL) == 0)
+        if (WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL) == 0)
         {
-            AddLog("WriteString", "Error: " + GetLastErrorAsString());
-            ShowError(GetLastErrorAsString());
+            ShowErrorLog("WriteString", "Error: failed to write string to address: " + to_hex_string(address) + "\n" + GetLastErrorAsString());
             return false;
         }
         AddLog("WriteString", "Write successful");
         return true;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WriteString", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WriteString", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -242,10 +246,9 @@ std::string GTLibc::GetGameName()
             AddLog("GetGameName", "Error: game name is empty");
         }
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("GetGameName", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("GetGameName", "Error: " + std::string(e.what()));
         // Handle error and return default value as needed for string
         return "";
     }
@@ -273,10 +276,9 @@ DWORD GTLibc::GetProcessId()
             AddLog("GetProcessId", "Error: process ID is 0");
         }
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("GetProcessId", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("GetProcessId", "Error: " + std::string(e.what()));
         // Handle error and return default value as needed
         return 0;
     }
@@ -303,10 +305,9 @@ HANDLE GTLibc::GetGameHandle()
             AddLog("GetGameHandle", "Error: game handle is 0");
         }
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("GetGameHandle", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("GetGameHandle", "Error: " + std::string(e.what()));
         // Handle error and return default value as needed
         return 0;
     }
@@ -328,13 +329,13 @@ DWORD GTLibc::GetGameBaseAddress()
         HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->processId);
         if (snapshot == INVALID_HANDLE_VALUE)
         {
-            AddLog("GetGameBaseAddress", "Error: snapshot is invalid - " + GetLastErrorAsString());
+            AddLog("GetGameBaseAddress", "Error: snapshot is invalid\n" + GetLastErrorAsString());
             return 0;
         }
         module.dwSize = sizeof(MODULEENTRY32);
         if (!Module32First(snapshot, &module))
         {
-            AddLog("GetGameBaseAddress", "Error: module32first failed - " + GetLastErrorAsString());
+            AddLog("GetGameBaseAddress", "Error: module32first failed\n" + GetLastErrorAsString());
             CloseHandle(snapshot);
             return 0;
         }
@@ -350,10 +351,9 @@ DWORD GTLibc::GetGameBaseAddress()
         }
         return this->gameBaseAddress;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("GetGameBaseAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("GetGameBaseAddress", "Error: " + std::string(e.what()));
         // Handle error and return default value as needed
         return 0;
     }
@@ -369,23 +369,31 @@ DWORD GTLibc::GetGameBaseAddress()
 HANDLE GTLibc::GetGameHandle4mHWND(HWND hwnd)
 {
     AddLog("GetGameHandle4mHWND", "Trying to get game handle");
-    DWORD processId;
-    if (!GetWindowThreadProcessId(hwnd, &processId))
+    HANDLE gameHandle = nullptr;
+    try
     {
-        AddLog("GetGameHandle4mHWND", "Error: GetWindowThreadProcessId failed");
-        return NULL;
-    }
-    HANDLE gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+        DWORD processId;
+        if (!GetWindowThreadProcessId(hwnd, &processId))
+        {
+            throw std::runtime_error("GetWindowThreadProcessId failed\n" + GetLastErrorAsString());
+        }
+        HANDLE gameHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
 
-    if (!gameHandle)
-    {
-        AddLog("GetGameHandle4mHWND", "Error: OpenProcess failed - " + GetLastErrorAsString());
-        return NULL;
+        if (!gameHandle)
+        {
+            throw std::runtime_error("OpenProcess failed\n" + GetLastErrorAsString());
+        }
+        else
+        {
+            AddLog("GetGameHandle4mHWND", "Return value: " + to_hex_string(gameHandle));
+            this->gameHandle = gameHandle;
+        }
     }
-    else
+    catch (const std::exception &e)
     {
-        AddLog("GetGameHandle4mHWND", "Return value: " + to_hex_string(gameHandle));
-        this->gameHandle = gameHandle;
+        ShowErrorLog("GetGameHandle4mHWND", "Error: " + std::string(e.what()));
+        // Handle error and return default value as needed
+        return nullptr;
     }
     return gameHandle;
 }
@@ -398,18 +406,25 @@ HANDLE GTLibc::GetGameHandle4mHWND(HWND hwnd)
 
 DWORD GTLibc::GetProcessID4mHWND(HWND hwnd)
 {
+    try{
     AddLog("GetProcessID4mHWND", "Trying to get process ID");
     DWORD processId;
 
     if (!GetWindowThreadProcessId(hwnd, &processId))
     {
-        AddLog("GetProcessID4mHWND", "Error: GetWindowThreadProcessId failed - " + GetLastErrorAsString());
-        return 0;
+        throw std::runtime_error("GetWindowThreadProcessId failed\n" + GetLastErrorAsString());
     }
     else
     {
         AddLog("GetProcessID4mHWND", "Return value: " + to_hex_string(processId));
         this->processId = processId;
+    }
+    }
+    catch (const std::exception &e)
+    {
+        ShowErrorLog("GetProcessID4mHWND", "Error: " + std::string(e.what()));
+        // Handle error and return default value as needed
+        return 0;
     }
 
     return processId;
@@ -443,10 +458,9 @@ bool GTLibc::IsKeyPressed(int keycode)
     {
         return (GetAsyncKeyState(keycode) & 0x8000);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("IsKeyPressed", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("IsKeyPressed", "Error: " + std::string(e.what()));
         return false;
     }
 }
@@ -462,10 +476,9 @@ bool GTLibc::IsKeyToggled(int keycode)
     {
         return (GetAsyncKeyState(keycode) & 0x1);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("IsKeyToggled", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("IsKeyToggled", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -492,8 +505,7 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 
     if (cheatTableData.empty())
     {
-        AddLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
-        ShowError("Could not read file: " + cheatTableFile);
+        ShowErrorLog("ReadCheatTable", "Error: Could not read file: " + cheatTableFile);
         return CheatTable();
     }
 
@@ -501,10 +513,9 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
     {
         AddLog("ReadCheatTable", "Successfully read file: " + cheatTableFile);
         // Show Error if gameBaseAddress is not set and is trying to read cheat table.
-        if (gameBaseAddress == 0)
+        if (gameBaseAddress == 0 || gameHandle == nullptr || processId == 0)
         {
-            AddLog("ReadCheatTable", "Error: GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
-            ShowError("GameBaseAddress is invalid, Try finding the game using FindGameProcess() first.");
+            ShowErrorLog("ReadCheatTable", "Error: Game could't be detected ,Try finding the game using FindGameProcess() first.");
         }
         else
         {
@@ -530,6 +541,13 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 
 void GTLibc::ExecuteCheatTable(bool showTrainerOutput, int exitTrainerKey, bool showMenuIndex, bool showMenuDescription, bool showMenuAction, bool showMenuHotkeys)
 {
+    // 0. Check if Cheat Table is valid.
+    if (g_CheatTable.cheatEntries.size() == 0)
+    {
+        ShowErrorLog("ExecuteCheatTable", "Error: Cheat Table is empty or invalid.\n Please check the cheat table file.");
+        return;
+    }
+
     // 1. Resolve the address and values.
     for (auto &entry : g_CheatTable.cheatEntries)
     {
@@ -598,7 +616,11 @@ void GTLibc::ExecuteCheatTable(bool showTrainerOutput, int exitTrainerKey, bool 
     DisplayCheatTableMenu(showMenuIndex, showMenuDescription, showMenuAction, showMenuHotkeys, exitTrainerKey);
     this->showTrainerOutput = showTrainerOutput;
 
-    // 4. Execute the cheat table.
+    // 4. Set the console title.
+    std::string consoleTitle = gameName + " +" + std::to_string(g_CheatTable.cheatEntries.size()) + " Trainer";
+    SetConsoleTitle(TEXT(consoleTitle.c_str()));
+
+    // 5. Execute the cheat table.
     while (true)
     {
         int cheatIndex = 0;
@@ -1161,6 +1183,32 @@ void GTLibc::ShowInfo(const std::string &infoMessage)
     MessageBox(NULL, infoMessage.c_str(), "INFO!", MB_ICONINFORMATION);
 }
 
+void GTLibc::ShowErrorLog(const std::string &methoName, const std::string &errorMessage)
+{
+    AddLog(methoName, errorMessage);
+    ShowError(errorMessage);
+}
+
+bool GTLibc::IsElevatedProcess()
+{
+    bool isElevated = false;
+    HANDLE token = NULL;
+    if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+    {
+        TOKEN_ELEVATION elevation;
+        DWORD token_sz = sizeof(TOKEN_ELEVATION);
+        if (GetTokenInformation(token, TokenElevation, &elevation, sizeof(elevation), &token_sz))
+        {
+            isElevated = elevation.TokenIsElevated;
+        }
+    }
+    if (token)
+    {
+        CloseHandle(token);
+    }
+    return isElevated;
+}
+
 // Method to Execute system commands.
 std::string GTLibc::ShellExec(const std::string &cmdArgs, bool runAsAdmin, bool waitForExit, const std::string &shell)
 {
@@ -1247,8 +1295,7 @@ bool GTLibc::CheckGameTrainerArch()
     {
         if (siCurrent.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL && siRemote.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
         {
-            AddLog("CheckGameTrainerArch", "The Trainer is 32-bit and the game is 64-bit.");
-            ShowError("The Trainer is 32-bit and the game is 64-bit.");
+            ShowErrorLog("CheckGameTrainerArch", "The Trainer is 32-bit and the game is 64-bit.");
             std::exit(EXIT_FAILURE);
         }
         else
@@ -1386,9 +1433,11 @@ void GTLibc::DisplayCheatValue(DataType &value)
                value);
 }
 
-std::string GTLibc::GetLastErrorAsString() {
+std::string GTLibc::GetLastErrorAsString()
+{
     DWORD error = GetLastError();
-    if (error == 0) return "No error";
+    if (error == 0)
+        return "No error";
 
     std::ostringstream ss;
     ss << "Error code: " << error << " - " << std::system_category().message(error);
