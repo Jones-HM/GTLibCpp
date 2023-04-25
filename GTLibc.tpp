@@ -28,10 +28,9 @@ T GTLibc::ReadAddress(DWORD address)
         }
         throw std::runtime_error("Failed to read address \n" + GetLastErrorAsString());
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadAddress", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -60,10 +59,9 @@ bool GTLibc::WriteAddress(DWORD address, const T &value)
         }
         throw std::runtime_error("Failed to write address \n" + GetLastErrorAsString());
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WriteAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WriteAddress", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -87,10 +85,9 @@ T GTLibc::ReadAddressOffset(DWORD address, DWORD offset)
         AddLog("ReadAddressOffset", "Read value: " + to_hex_string(value));
         return value;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadAddressOffset", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadAddressOffset", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -126,10 +123,9 @@ T GTLibc::ReadAddressOffsets(DWORD address, const std::vector<DWORD> &offsets)
             currentAddress = ReadAddress<DWORD>(currentAddress + offset);
         }
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadAddressOffsets", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadAddressOffsets", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -157,10 +153,9 @@ bool GTLibc::WriteAddressOffset(DWORD address, DWORD offset, const T &value)
         DWORD newAddress = address + offset;
         return WriteAddress(newAddress, value);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WriteAddressOffset", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WriteAddressOffset", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -186,10 +181,9 @@ bool GTLibc::WriteAddressOffsets(DWORD address, const std::vector<DWORD> &offset
             WriteAddressOffset(address, offset, value);
         }
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WriteAddressOffsets", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WriteAddressOffsets", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -212,10 +206,9 @@ bool GTLibc::WritePointer(DWORD address, DWORD offset, const T &value)
         DWORD pointerAddress = ReadAddress<DWORD>(address);
         return WriteAddressOffset(pointerAddress, offset, value);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WritePointer", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WritePointer", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -239,10 +232,9 @@ T GTLibc::ReadPointer(DWORD address)
         AddLog("ReadPointer", "Return value: " + to_hex_string(returnValue));
         return returnValue;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadPointer", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadPointer", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -268,10 +260,9 @@ T GTLibc::ReadPointerOffset(DWORD address, const DWORD offset)
         AddLog("ReadPointerOffset", "Return value: " + to_hex_string(pointerAddress));
         return pointerAddress;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadPointerOffset", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadPointerOffset", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -310,10 +301,9 @@ T GTLibc::ReadPointerOffsets(DWORD address, const std::vector<DWORD> &offsets)
         AddLog("ReadPointerOffsets", "Return value: " + to_hex_string(pointerAddress));
         return pointerAddress;
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("ReadPointerOffsets", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("ReadPointerOffsets", "Error: " + std::string(e.what()));
         // Return a default value or handle the error as needed
         return T();
     }
@@ -338,10 +328,9 @@ bool GTLibc::WritePointerOffset(DWORD address, const std::vector<DWORD> &offsets
         DWORD pointerAddress = ReadPointerOffsets<DWORD>(address, {offsets});
         return WriteAddress(pointerAddress, value);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WritePointerOffset", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WritePointerOffset", "Error: " + std::string(e.what()));
         return false;
     }
     return false;
@@ -364,10 +353,9 @@ bool GTLibc::WritePointerOffsets(DWORD address, const std::vector<DWORD> &offset
         DWORD pointerAddress = ReadPointerOffsets<DWORD>(address, offsets);
         return WriteAddress(pointerAddress, value);
     }
-    catch (const std::runtime_error &e)
+    catch (const std::exception &e)
     {
-        AddLog("WritePointerOffsets", "Error: " + std::string(e.what()));
-        ShowError(e.what());
+        ShowErrorLog("WritePointerOffsets", "Error: " + std::string(e.what()));
         return false;
     }
     return false;

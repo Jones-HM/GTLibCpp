@@ -1,6 +1,6 @@
 /*
 Brief: This shows how to use the GTLibc to generate a generic trainer using Cheat Table.
-Using GTLibc and CEParser together, you can generate a generic trainer and execute it.
+This is automated trainer generation using Cheat Table.
 Author: HeavenHM
 Date: 24/04/2023
 */
@@ -53,12 +53,12 @@ int main()
     // Instantiate the GTLibc and Enable the logs.
     gtlibc.EnableLogs(true);
 
-    std::string gameName = "igi";
+    std::string gameName = "ac_client";
     // Finding the game process
     auto gameHandle = gtlibc.FindGameProcess(gameName);
 
     // Selecting the cheat table file.
-    std::string cheatTableFile = "CheatTable/igi.ct";
+    std::string cheatTableFile = "CheatTable/assaultcube.ct";
 
     // Generate the cheat table demo with read and execute.
     GenerateGenericTrainer(cheatTableFile);
