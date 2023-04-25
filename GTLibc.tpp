@@ -8,6 +8,68 @@ for full implementation, see GTLibc.cpp
 using namespace GTLIBC;
 
 /*
+ * @brief Read address
+ * @param address - Address to read
+ * @return T - Value read from address
+ *
+ */
+template <typename T>
+T GTLibc::ReadAddress(DWORD address)
+{
+    AddLog("ReadAddress", "Trying to read address: " + to_hex_string(address));
+    try
+    {
+        T value;
+        SIZE_T bytesRead;
+        if (ReadProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
+        {
+            AddLog("ReadAddress", "Read value: " + to_hex_string(value));
+            return value;
+        }
+        throw std::runtime_error("Failed to read address Error: " + GetLastErrorAsString());
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("ReadAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        // Return a default value or handle the error as needed
+        return T();
+    }
+    // return default value for type T
+    return T();
+}
+
+/*
+ * @brief Write address
+ * @param address - Address to write
+ * @param value - Value to write to address
+ * @return bool - True if write was successful else false
+ *
+ */
+
+template <typename T>
+bool GTLibc::WriteAddress(DWORD address, const T &value)
+{
+    AddLog("WriteAddress", "Trying to write to address: " + to_hex_string(address) + " with value: " + to_hex_string(value));
+    try
+    {
+        SIZE_T bytesWritten;
+        if (WriteProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesWritten) && bytesWritten == sizeof(T))
+        {
+            return true;
+        }
+        throw std::runtime_error("Failed to write address Error: " + GetLastErrorAsString());
+    }
+    catch (const std::runtime_error &e)
+    {
+        AddLog("WriteAddress", "Error: " + std::string(e.what()));
+        ShowError(e.what());
+        return false;
+    }
+    return false;
+}
+
+/*
  * @brief Read address with offset
  * @param address - Address to read
  * @param offset - Offset to add to address
@@ -20,15 +82,10 @@ T GTLibc::ReadAddressOffset(DWORD address, DWORD offset)
     AddLog("ReadAddressOffset", "Trying to read address with offset: " + to_hex_string(address) + " + " + to_hex_string(offset));
     try
     {
-        T value;
-        SIZE_T bytesRead;
         DWORD newAddress = address + offset;
-        if (ReadProcessMemory(gameHandle, (LPVOID)newAddress, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
-        {
-            AddLog("ReadAddressOffset", "Read value: " + to_hex_string(value));
-            return value;
-        }
-        throw std::runtime_error("Failed to read address with offset");
+        T value = ReadAddress<T>(newAddress);
+        AddLog("ReadAddressOffset", "Read value: " + to_hex_string(value));
+        return value;
     }
     catch (const std::runtime_error &e)
     {
@@ -80,67 +137,7 @@ T GTLibc::ReadAddressOffsets(DWORD address, const std::vector<DWORD> &offsets)
     return T();
 }
 
-/*
- * @brief Read address
- * @param address - Address to read
- * @return T - Value read from address
- *
- */
-template <typename T>
-T GTLibc::ReadAddress(DWORD address)
-{
-    AddLog("ReadAddress", "Trying to read address: " + to_hex_string(address));
-    try
-    {
-        T value;
-        SIZE_T bytesRead;
-        if (ReadProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesRead) && bytesRead == sizeof(T))
-        {
-            AddLog("ReadAddress", "Read value: " + to_hex_string(value));
-            return value;
-        }
-        throw std::runtime_error("Failed to read address");
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("ReadAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        // Return a default value or handle the error as needed
-        return T();
-    }
-    // return default value for type T
-    return T();
-}
 
-/*
- * @brief Write address
- * @param address - Address to write
- * @param value - Value to write to address
- * @return bool - True if write was successful else false
- *
- */
-
-template <typename T>
-bool GTLibc::WriteAddress(DWORD address, const T &value)
-{
-    AddLog("WriteAddress", "Trying to write to address: " + to_hex_string(address) + " with value: " + to_hex_string(value));
-    try
-    {
-        SIZE_T bytesWritten;
-        if (WriteProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(T), &bytesWritten) && bytesWritten == sizeof(T))
-        {
-            return true;
-        }
-        throw std::runtime_error("Failed to write to address");
-    }
-    catch (const std::runtime_error &e)
-    {
-        AddLog("WriteAddress", "Error: " + std::string(e.what()));
-        ShowError(e.what());
-        return false;
-    }
-    return false;
-}
 
 /*
  * @brief Write address with offset

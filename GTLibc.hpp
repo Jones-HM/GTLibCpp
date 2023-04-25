@@ -39,6 +39,7 @@ License : MIT License
 #include <unordered_map> // Provides unordered_map class
 #include <future>        // Provides the ability to create asynchronous tasks
 #include <mutex>         // Provides the ability to create mutexes
+#include <system_error> // Provides the ability to create system errors
 
 /*Defining WIN32 Constants*/
 #define WINVER 0x0500       // Sets the minimum required platform to Windows 2000.
@@ -200,6 +201,7 @@ namespace GTLIBC
         std::string ValueToString(const T &value);
         template <typename T>
         std::string GetDataTypeInfo(T type);
+        std::string GetLastErrorAsString();
 
         std::string gameName;
         HWND gameWindow;

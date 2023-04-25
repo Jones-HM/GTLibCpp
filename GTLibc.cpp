@@ -1,3 +1,4 @@
+#define GT_USE_CE_PARSER
 #include "GTLibc.hpp"
 using namespace GTLIBC;
 
@@ -84,7 +85,7 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
 
         if (hSnapshot == INVALID_HANDLE_VALUE)
         {
-            std::string errMsg = "Failed to create process snapshot";
+            std::string errMsg = "Failed to create process snapshot - " + GetLastErrorAsString();
             AddLog("FindGameProcess", "Error: " + errMsg);
             ShowError(errMsg);
             return false;
@@ -94,7 +95,7 @@ bool GTLibc::FindGameProcess(const std::string &gameName)
 
         if (!Process32First(hSnapshot, &pe))
         {
-            std::string errMsg = "Failed to get first process entry";
+            std::string errMsg = "Failed to get first process entry - " + GetLastErrorAsString();
             AddLog("FindGameProcess", "Error: " + errMsg);
             ShowError(errMsg.c_str());
             CloseHandle(hSnapshot);
@@ -165,7 +166,13 @@ std::string GTLibc::ReadString(DWORD address, size_t length)
     try
     {
         char *buffer = new char[length + 1];
-        ReadProcessMemory(gameHandle, (LPVOID)address, buffer, length, NULL);
+        if(ReadProcessMemory(gameHandle, (LPVOID)address, buffer, length, NULL) == 0)
+        {
+            AddLog("ReadString", "Error: " + GetLastErrorAsString());
+            ShowError(GetLastErrorAsString());
+            return "";
+        }
+
         buffer[length] = '\0';
         std::string result(buffer);
         delete[] buffer;
@@ -195,7 +202,14 @@ bool GTLibc::WriteString(DWORD address, const std::string &value)
     AddLog("WriteString", "Trying to write string to address: " + to_hex_string(address));
     try
     {
-        return WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL);
+        if(WriteProcessMemory(gameHandle, (LPVOID)address, value.c_str(), value.length() + 1, NULL) == 0)
+        {
+            AddLog("WriteString", "Error: " + GetLastErrorAsString());
+            ShowError(GetLastErrorAsString());
+            return false;
+        }
+        AddLog("WriteString", "Write successful");
+        return true;
     }
     catch (const std::runtime_error &e)
     {
@@ -314,13 +328,13 @@ DWORD GTLibc::GetGameBaseAddress()
         HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->processId);
         if (snapshot == INVALID_HANDLE_VALUE)
         {
-            AddLog("GetGameBaseAddress", "Error: snapshot is invalid");
+            AddLog("GetGameBaseAddress", "Error: snapshot is invalid - " + GetLastErrorAsString());
             return 0;
         }
         module.dwSize = sizeof(MODULEENTRY32);
         if (!Module32First(snapshot, &module))
         {
-            AddLog("GetGameBaseAddress", "Error: module32first failed");
+            AddLog("GetGameBaseAddress", "Error: module32first failed - " + GetLastErrorAsString());
             CloseHandle(snapshot);
             return 0;
         }
@@ -365,7 +379,7 @@ HANDLE GTLibc::GetGameHandle4mHWND(HWND hwnd)
 
     if (!gameHandle)
     {
-        AddLog("GetGameHandle4mHWND", "Error: OpenProcess failed");
+        AddLog("GetGameHandle4mHWND", "Error: OpenProcess failed - " + GetLastErrorAsString());
         return NULL;
     }
     else
@@ -389,7 +403,7 @@ DWORD GTLibc::GetProcessID4mHWND(HWND hwnd)
 
     if (!GetWindowThreadProcessId(hwnd, &processId))
     {
-        AddLog("GetProcessID4mHWND", "Error: GetWindowThreadProcessId failed");
+        AddLog("GetProcessID4mHWND", "Error: GetWindowThreadProcessId failed - " + GetLastErrorAsString());
         return 0;
     }
     else
@@ -1370,4 +1384,13 @@ void GTLibc::DisplayCheatValue(DataType &value)
     std::visit([](const auto &item)
                { std::cout << "Value: " << item << std::endl; },
                value);
+}
+
+std::string GTLibc::GetLastErrorAsString() {
+    DWORD error = GetLastError();
+    if (error == 0) return "No error";
+
+    std::ostringstream ss;
+    ss << "Error code: " << error << " - " << std::system_category().message(error);
+    return ss.str();
 }
