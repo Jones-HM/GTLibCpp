@@ -1,3 +1,4 @@
+![cover_logo](https://github.com/haseeb-heaven/GTLibCpp/blob/master/resources/gtlibc_logo.png?raw=true "")
 # GTLibCpp - Game Trainer Library
 
 GTLibc is a library designed to facilitate the creation of game trainers in C++ with **latest C++17 features**.
@@ -245,3 +246,4 @@ for more information, see [ONLINE_USAGE.md](ONLINE_USAGE.md)
 </table>
 
 Written and maintained by: **HeavenHM@2023.**
+![cover_logo](https://github.com/haseeb-heaven/GTLibCpp/blob/master/resources/heaven_hm.png?raw=true "")
