@@ -55,7 +55,7 @@ void GenerateGenericTrainer(std::string &cheatTableFile, bool printCheat = false
     if (executeCheat)
     {
         // Trainer with default values.
-        gtlibc.ExecuteCheatTable();
+        gtlibc.ExecuteCheatTable(true);
 
         // Exit the trainer with the key 'X' and Print Index, Description, Hotkeys set to true.
         // gtlibc.ExecuteCheatTable(true,'X',true,true,false,true);

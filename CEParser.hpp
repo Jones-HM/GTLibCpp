@@ -42,6 +42,7 @@ namespace GTLIBC
         string DecreaseValue;
         string Freeze;
         string Unfreeze;
+        string ToggleFreeze;
     };
 
     // Define CheatDataType struct
@@ -56,7 +57,7 @@ namespace GTLIBC
         string String;
     };
     
-    inline CheatAction CheatActions = {"Set Value", "Increase Value", "Decrease Value", "Freeze", "Unfreeze"};
+    inline CheatAction CheatActions = {"Set Value", "Increase Value", "Decrease Value", "Activate", "Deactivate","Toggle Activation"};
     inline CheatType CheatTypes = {"Byte", "2 Bytes", "4 Bytes", "8 Bytes", "Float", "Double", "String"};
 
     // Define CheatEntry class

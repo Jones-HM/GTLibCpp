@@ -514,7 +514,7 @@ CheatTable GTLibc::ReadCheatTable(const std::string &cheatTableFile, int entries
 @return None
 */
 
-void GTLibc::ExecuteCheatTable(bool showTrainerOutput,int exitTrainerKey, bool showMenuIndex, bool showMenuDescription, bool showMenuAction, bool showMenuHotkeys)
+void GTLibc::ExecuteCheatTable(bool showTrainerOutput, int exitTrainerKey, bool showMenuIndex, bool showMenuDescription, bool showMenuAction, bool showMenuHotkeys)
 {
     // 1. Resolve the address and values.
     for (auto &entry : g_CheatTable.cheatEntries)
@@ -581,7 +581,7 @@ void GTLibc::ExecuteCheatTable(bool showTrainerOutput,int exitTrainerKey, bool s
                                     g_CheatTable.cheatEntries.end());
 
     // 3. Display Cheat table menu.
-    DisplayCheatTableMenu(showMenuIndex, showMenuDescription, showMenuAction, showMenuHotkeys,exitTrainerKey);
+    DisplayCheatTableMenu(showMenuIndex, showMenuDescription, showMenuAction, showMenuHotkeys, exitTrainerKey);
     this->showTrainerOutput = showTrainerOutput;
 
     // 4. Execute the cheat table.
@@ -600,7 +600,7 @@ void GTLibc::ExecuteCheatTable(bool showTrainerOutput,int exitTrainerKey, bool s
         }
         else if (IsKeyToggled(exitTrainerKey))
         {
-            std::cout << "Trainer was generated using GTLibCpp @ HeavenHM" << std::endl;
+            std::cout << "Trainer was generated using GTLibCpp." << std::endl;
             break;
         }
 
@@ -753,7 +753,7 @@ void GTLibc::ReadCheatTableEntries()
 --------------------------------------------------------------------------------
 */
 
-void GTLibc::DisplayCheatTableMenu(bool showIndex, bool showDescription, bool showAction, bool showHotkeys,int exitTrainerKey)
+void GTLibc::DisplayCheatTableMenu(bool showIndex, bool showDescription, bool showAction, bool showHotkeys, int exitTrainerKey)
 {
     int cheatIndex = 1;
 
@@ -807,7 +807,8 @@ void GTLibc::DisplayCheatTableMenu(bool showIndex, bool showDescription, bool sh
         std::cout << std::endl;
         cheatIndex++;
     }
-    std::cout << "Exit Trainer " << "\t - " << KeyCodeToName(exitTrainerKey) << std::endl;
+    std::cout << "Exit Trainer "
+              << "\t - " << KeyCodeToName(exitTrainerKey) << std::endl;
 }
 
 template <typename T>
@@ -871,6 +872,49 @@ void GTLibc::CheatAction_DecreaseValue<std::string>(DWORD address, std::string v
     throw std::runtime_error("Decrease action is not supported for strings");
 }
 
+// Freeze a value to an address.
+template <typename T>
+bool GTLibc::CheatAction_FreezeValue(DWORD address, T value)
+{
+    // If value is not present then Freeze the current value at the address.
+    if (value == T(0))
+    {
+        value = ReadAddress<T>(address);
+    }
+
+    auto freezeFlag = std::make_shared<std::atomic_bool>(false);
+
+    if (freezeTokenSrcs.find(address) != freezeTokenSrcs.end())
+    {
+        freezeTokenSrcs[address]->store(true);
+        freezeTokenSrcs.erase(address);
+    }
+
+    freezeTokenSrcs[address] = freezeFlag;
+
+    std::thread([this, address, value, freezeFlag]()
+                {
+            while (!freezeFlag->load()) {
+            SIZE_T bytesWritten;
+            if (!WriteProcessMemory(gameHandle, (LPVOID)address, &value, sizeof(value), &bytesWritten) && bytesWritten == sizeof(value))
+            AddLog("CheatAction_FreezeValue", "Failed to write value: " + ValueToString(value) + " at address: " + to_hex_string(address) + " of type: " + GetDataTypeInfo(value));
+                std::this_thread::sleep_for(std::chrono::milliseconds(25));
+            } })
+        .detach();
+
+    return true;
+}
+
+// Unfreeze a frozen value at an address
+void GTLibc::CheatAction_UnfreezeValue(DWORD address)
+{
+    if (freezeTokenSrcs.find(address) != freezeTokenSrcs.end())
+    {
+        freezeTokenSrcs[address]->store(true);
+        freezeTokenSrcs.erase(address);
+    }
+}
+
 template <typename T>
 void GTLibc::ExecuteCheatAction(const std::string &cheatAction, DWORD &address, const T &value)
 {
@@ -885,6 +929,25 @@ void GTLibc::ExecuteCheatAction(const std::string &cheatAction, DWORD &address, 
     else if (cheatAction == CheatActions.DecreaseValue)
     {
         CheatAction_DecreaseValue<T>(address, value);
+    }
+    else if (cheatAction == CheatActions.Freeze)
+    {
+        CheatAction_FreezeValue<T>(address, value);
+    }
+    else if (cheatAction == CheatActions.Unfreeze)
+    {
+        CheatAction_UnfreezeValue(address);
+    }
+    else if (cheatAction == CheatActions.ToggleFreeze)
+    {
+        if (freezeTokenSrcs.find(address) != freezeTokenSrcs.end()) // if the address is already in the list of frozen addresses
+            CheatAction_UnfreezeValue(address);                     // unfreeze the address
+        else
+            CheatAction_FreezeValue<T>(address, value); // freeze the address
+    }
+    else
+    {
+        AddLog("ExecuteCheatAction", "Unknown cheat action: " + cheatAction);
     }
 }
 
@@ -1154,7 +1217,7 @@ bool GTLibc::CheckGameTrainerArch()
     SYSTEM_INFO siRemote = {};
     GetNativeSystemInfo(&siCurrent);
 
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,this->processId);
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, this->processId);
     if (hSnapshot != INVALID_HANDLE_VALUE)
     {
         MODULEENTRY32 me = {};

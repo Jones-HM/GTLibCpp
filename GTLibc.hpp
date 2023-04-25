@@ -5,38 +5,40 @@ Notably, GTLibc exclusively employs Win32 API methods and eschews CRT methods as
 GTLibc provides all the requisite methods necessary for game trainer development from the inception of the project to its completion.
 It streamlines the development process, making it less cumbersome for developers.
 
-Author : HeavenHM 
+Author : HeavenHM
 Date :  24/04/2023
 GitHub : https://github.com/haseeb-heaven/GTLibCpp
 Version : 1.0.0
 License : MIT License
 */
 
-
 #pragma once
 #ifndef GTLIBC_H
 #define GTLIBC_H
 
 // Including the standard libraries
-#include <iostream> // Provides basic input/output
-#include <string> // Provides string class
-#include <sstream> // Provides stringstream class
-#include <vector> // Provides vector class
-#include <stdexcept> // Provides exceptions
-#include <ctime> // Provides time functions
-#include <iomanip> // Provides functions for formatting output
-#include <chrono> // Provides high resolution clock
-#include <fstream> // Provides file stream classes
-#include <ostream> // Provides ostream class
-#include <regex> // Provides regular expression classes
-#include <variant> // Provides variant class
-#include <thread> // Provides thread class
-#include <optional> // Provides optional class
-#include <type_traits> // Provides type traits
-#include <array> // Provides array class
-#include <filesystem> // Provides filesystem classes
-#include <cstdint> // Provides integer types
-#include <charconv> // Provides character conversion
+#include <iostream>      // Provides basic input/output
+#include <string>        // Provides string class
+#include <sstream>       // Provides stringstream class
+#include <vector>        // Provides vector class
+#include <stdexcept>     // Provides exceptions
+#include <ctime>         // Provides time functions
+#include <iomanip>       // Provides functions for formatting output
+#include <chrono>        // Provides high resolution clock
+#include <fstream>       // Provides file stream classes
+#include <ostream>       // Provides ostream class
+#include <regex>         // Provides regular expression classes
+#include <variant>       // Provides variant class
+#include <thread>        // Provides thread class
+#include <optional>      // Provides optional class
+#include <type_traits>   // Provides type traits
+#include <array>         // Provides array class
+#include <filesystem>    // Provides filesystem classes
+#include <cstdint>       // Provides integer types
+#include <charconv>      // Provides character conversion
+#include <unordered_map> // Provides unordered_map class
+#include <future>        // Provides the ability to create asynchronous tasks
+#include <mutex>         // Provides the ability to create mutexes
 
 /*Defining WIN32 Constants*/
 #define WINVER 0x0500       // Sets the minimum required platform to Windows 2000.
@@ -173,6 +175,9 @@ namespace GTLIBC
         void CheatAction_IncreaseValue(DWORD address, T value);
         template <typename T>
         void CheatAction_DecreaseValue(DWORD address, T value);
+        template <typename T>
+        bool CheatAction_FreezeValue(DWORD address, T value);
+        void CheatAction_UnfreezeValue(DWORD address);
 
 #endif
         // GTLibc private methods.
@@ -205,6 +210,7 @@ namespace GTLIBC
         std::string logFile;
         bool showTrainerOutput;
         int cheatEntryId;
+        std::unordered_map<DWORD, std::shared_ptr<std::atomic_bool>> freezeTokenSrcs;
     };
     inline GTLibc *g_GTLibc{};
 #ifdef GT_USE_CE_PARSER
